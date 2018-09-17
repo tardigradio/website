@@ -1,6 +1,7 @@
 package main
 
 import (
+  "database/sql"
 	"fmt"
   "log"
 	"os"
@@ -9,6 +10,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+type Server struct {
+  DB *sql.DB
+}
 
 
 func main() {
@@ -35,8 +40,15 @@ func main() {
     c.String(http.StatusOK, "%s: %s", name, song)
   })
 
+  router.GET("/upload", func(c *gin.Context) {
+    c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
+	})
+
   router.POST("/upload", func(c *gin.Context) {
 		// single file
+    // title := c.PostForm("songTitle")
+		// description := c.PostForm("songDesc")
+
 		file, _ := c.FormFile("file")
 		log.Println(file.Filename)
 
@@ -55,8 +67,12 @@ func main() {
   })
 
   router.GET("/", func(c *gin.Context) {
+    var popular []string
+    var recent []string
   		c.HTML(http.StatusOK, "index.tmpl", gin.H{
   			"title": "Tardigraud.io",
+        "popular": popular,
+        "recent": recent,
   		})
   	})
 

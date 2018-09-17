@@ -2,4 +2,18 @@
 	<h1>
 		{{ .title }}
 	</h1>
+  <body>
+    <div id="recent">
+      <h2>Recent Uploads</h2>
+      {{range .recent}}
+        {{.}}<br />
+      {{end}}
+    </div>
+    <div id="popular">
+      <h2>Popular Uploads</h2>
+      {{range .popular}}
+        {{.}}<br />
+      {{end}}
+    </div>
+  </body>
 </html>
