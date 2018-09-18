@@ -59,6 +59,7 @@ func main() {
 	defer database.Close()
 
 	router.LoadHTMLGlob("templates/*")
+  router.Static("assets/css", "assets/css")
 
 	router.GET("/user/:name", func(c *gin.Context) {
 		username := c.Param("name")
