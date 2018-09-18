@@ -86,15 +86,18 @@ func main() {
 		})
 
 		private.POST("/upload", func(c *gin.Context) {
+      session := sessions.Default(c)
+      username := session.Get("user")
 			// single file
 			title := c.PostForm("songTitle")
 			description := c.PostForm("songDesc")
-			user_id := 0
+			user_id := 0 //TODO: get id from the username
 
 			file, _ := c.FormFile("file")
 			log.Println(file.Filename, title, description)
 
 			// Upload the file to STORJ
+      // TODO: Add song to bucket sj://username
 			database.AddSong(title, description, user_id)
 
 			c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
@@ -108,8 +111,8 @@ func main() {
 	})
 
 	router.POST("/register", func(c *gin.Context) {
+
 		session := sessions.Default(c)
-		// single file
 		email := c.PostForm("email")
 		username := c.PostForm("username")
 		password := c.PostForm("password")
@@ -122,9 +125,10 @@ func main() {
 			log.Println(err)
 			c.String(http.StatusInternalServerError, "Failed to register")
 		} else {
-			session.Set("user", email)
+      // TODO: Create bucket for user with the same name as the user sj://username
+			session.Set("user", username)
 			session.Save()
-			c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", email))
+			c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
 
 		}
 	})
@@ -134,14 +138,16 @@ func main() {
 	})
 
 	router.POST("/login", func(c *gin.Context) {
+    // TODO: Add sessions code
+
 		email := c.PostForm("email")
-		user := c.PostForm("user")
+		username := c.PostForm("user")
 		password := c.PostForm("password")
 
 		h := sha512.New()
 		h.Write([]byte(password))
 
-		err = database.AddUser(email, user, h.Sum(nil))
+		err = database.AddUser(email, username, h.Sum(nil))
 		if err != nil {
 			log.Fatal(err)
 		}
