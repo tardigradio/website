@@ -117,19 +117,28 @@ func main() {
 	defer database.Close()
 
 	router.LoadHTMLGlob("templates/*")
+	router.Static("assets/css", "assets/css")
 
 	router.GET("/user/:name", func(c *gin.Context) {
+		session := sessions.Default(c)
 		username := c.Param("name")
-		email := ""
+
+		var user db.User
+		user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		uploads := []string{}
 		c.HTML(http.StatusOK, "user.tmpl", gin.H{
 			"username": username,
-			"email":    email,
+			"email":    user.Email,
 			"uploads":  uploads,
 		})
 	})
 
 	router.GET("/user/:name/*song", func(c *gin.Context) {
+		// session := sessions.Default(c)
 		username := c.Param("name")
 		song := c.Param("song")
 		c.HTML(http.StatusOK, "song.tmpl", gin.H{
@@ -147,10 +156,16 @@ func main() {
 			session.Delete("user")
 			session.Save()
 
+			c.String(http.StatusOK, "Successfully Logged out")
+			router.HandleContext(c)
 		})
 
 		user.GET("/upload", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
+			session := sessions.Default(c)
+
+			c.HTML(http.StatusOK, "upload.tmpl", gin.H{
+				"currentUser": session.Get("user"),
+			})
 		})
 
 		user.POST("/upload", func(c *gin.Context) {
@@ -189,7 +204,7 @@ func main() {
 			database.AddSong(title, description, user.ID)
 
 			// Redirect to homepage
-			c.Request.URL.Path = "/"
+			c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", title))
 			router.HandleContext(c)
 		})
 	}
