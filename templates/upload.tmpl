@@ -8,7 +8,7 @@
   <a href="/">home</a><br />
   <h1>Upload</h1>
   <body>
-    <form action="/upload" method="post" enctype="multipart/form-data">
+    <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="return Validate(this);">
       Title: <input type="text" name="songTitle"><br>
       Files: <input type="file" name="file"><br>
       Description: <textarea name="songDesc" rows="3"></textarea>
@@ -17,3 +17,33 @@
   </body>
 
 </html>
+
+<script>
+var _validFileExtensions = [".mp3", ".flac", ".ogg", ".wave"];
+function Validate(oForm) {
+    var arrInputs = oForm.getElementsByTagName("input");
+    for (var i = 0; i < arrInputs.length; i++) {
+        var oInput = arrInputs[i];
+        if (oInput.type == "file") {
+            var sFileName = oInput.value;
+            if (sFileName.length > 0) {
+                var blnValid = false;
+                for (var j = 0; j < _validFileExtensions.length; j++) {
+                    var sCurExtension = _validFileExtensions[j];
+                    if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                        blnValid = true;
+                        break;
+                    }
+                }
+
+                if (!blnValid) {
+                    alert("Sorry, " + sFileName + " is invalid, allowed extensions are: " + _validFileExtensions.join(", "));
+                    return false;
+                }
+            }
+        }
+    }
+
+    return true;
+}
+</script>
