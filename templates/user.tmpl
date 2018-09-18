@@ -1,0 +1,12 @@
+<html>
+  <a href="/">home</a><br />
+	<h1>{{ .username }}</h1> {{ .email }}
+  <body>
+    <div id="tracks">
+      <h2>Uploads</h2>
+      {{range .uploads}}
+        {{.}}<br />
+      {{end}}
+    </div>
+  </body>
+</html>

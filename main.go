@@ -60,14 +60,23 @@ func main() {
 	router.LoadHTMLGlob("templates/*")
 
 	router.GET("/user/:name", func(c *gin.Context) {
-		name := c.Param("name")
-		c.String(http.StatusOK, "Hello %s", name)
+		username := c.Param("name")
+		email := ""
+		uploads := []string{}
+		c.HTML(http.StatusOK, "user.tmpl", gin.H{
+			"username": username,
+			"email":    email,
+			"uploads":  uploads,
+		})
 	})
 
 	router.GET("/user/:name/*song", func(c *gin.Context) {
-		name := c.Param("name")
+		username := c.Param("name")
 		song := c.Param("song")
-		c.String(http.StatusOK, "%s: %s", name, song)
+		c.HTML(http.StatusOK, "song.tmpl", gin.H{
+			"username": username,
+			"song":     song,
+		})
 	})
 
 	private := router.Group("/upload")
@@ -77,15 +86,18 @@ func main() {
 		})
 
 		private.POST("/upload", func(c *gin.Context) {
+			session := sessions.Default(c)
+			username := session.Get("user")
 			// single file
 			title := c.PostForm("songTitle")
 			description := c.PostForm("songDesc")
-			user_id := 0
+			user_id := 0 //TODO: get id from the username
 
 			file, _ := c.FormFile("file")
 			log.Println(file.Filename, title, description)
 
 			// Upload the file to STORJ
+			// TODO: Add song to bucket sj://username
 			database.AddSong(title, description, user_id)
 
 			c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
@@ -99,8 +111,8 @@ func main() {
 	})
 
 	router.POST("/register", func(c *gin.Context) {
+
 		session := sessions.Default(c)
-		// single file
 		email := c.PostForm("email")
 		username := c.PostForm("username")
 		password := c.PostForm("password")
@@ -113,9 +125,10 @@ func main() {
 			log.Println(err)
 			c.String(http.StatusInternalServerError, "Failed to register")
 		} else {
-			session.Set("user", email)
+			// TODO: Create bucket for user with the same name as the user sj://username
+			session.Set("user", username)
 			session.Save()
-			c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", email))
+			c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
 
 		}
 	})
@@ -136,6 +149,7 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		fmt.Println(user)
 	})
 
 	router.GET("/", func(c *gin.Context) {
