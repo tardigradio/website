@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-  "crypto/sha512"
+	"crypto/sha512"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/tardigraudio/website/db"
-  "github.com/gin-contrib/sessions"
-  "github.com/gin-contrib/sessions/cookie"
 )
 
 func AuthRequired() gin.HandlerFunc {
@@ -43,8 +43,8 @@ func main() {
 
 	router := gin.Default()
 
-  store := cookie.NewStore([]byte("secret"))
-  router.Use(sessions.Sessions("mysession", store))
+	store := cookie.NewStore([]byte("secret"))
+	router.Use(sessions.Sessions("mysession", store))
 
 	usr, err := user.Current()
 	if err != nil {
@@ -55,7 +55,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-  defer database.Close()
+	defer database.Close()
 
 	router.LoadHTMLGlob("templates/*")
 
@@ -79,58 +79,72 @@ func main() {
     })
 	})
 
-  private := router.Group("/upload")
-  {
-    private.GET("/upload", func(c *gin.Context) {
-  		c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
-  	})
+	private := router.Group("/upload")
+	{
+		private.GET("/upload", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
+		})
 
-  	private.POST("/upload", func(c *gin.Context) {
-  		// single file
-  		title := c.PostForm("songTitle")
-  		description := c.PostForm("songDesc")
-      user_id := 0
+		private.POST("/upload", func(c *gin.Context) {
+			// single file
+			title := c.PostForm("songTitle")
+			description := c.PostForm("songDesc")
+			user_id := 0
 
-  		file, _ := c.FormFile("file")
-  		log.Println(file.Filename, title, description)
+			file, _ := c.FormFile("file")
+			log.Println(file.Filename, title, description)
 
-  		// Upload the file to STORJ
-  		database.AddSong(title, description, user_id)
+			// Upload the file to STORJ
+			database.AddSong(title, description, user_id)
 
-  		c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
-  	})
+			c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", file.Filename))
+		})
 	}
 
-  private.Use(AuthRequired())
+	private.Use(AuthRequired())
 
-  router.GET("/register", func(c *gin.Context) {
-    c.HTML(http.StatusOK, "register.tmpl", gin.H{})
-  })
+	router.GET("/register", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "register.tmpl", gin.H{})
+	})
 
-  router.POST("/register", func(c *gin.Context) {
-    session := sessions.Default(c)
-    // single file
-    email := c.PostForm("email")
-    username := c.PostForm("username")
-    password := c.PostForm("password")
+	router.POST("/register", func(c *gin.Context) {
+		session := sessions.Default(c)
+		// single file
+		email := c.PostForm("email")
+		username := c.PostForm("username")
+		password := c.PostForm("password")
 
-    h := sha512.New()
-    h.Write([]byte(password))
+		h := sha512.New()
+		h.Write([]byte(password))
 
-    err := database.AddUser(email, username, h.Sum(nil))
-    if err != nil {
-      log.Println(err)
-      c.String(http.StatusInternalServerError, "Failed to register")
-    } else {
-      session.Set("user", email)
-      session.Save()
-      c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", email))
+		err := database.AddUser(email, username, h.Sum(nil))
+		if err != nil {
+			log.Println(err)
+			c.String(http.StatusInternalServerError, "Failed to register")
+		} else {
+			session.Set("user", email)
+			session.Save()
+			c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", email))
 
-    }
-  })
+		}
+	})
 
 	router.GET("/login", func(c *gin.Context) {
-		c.String(http.StatusOK, "login")
+		c.HTML(http.StatusOK, "login.tmpl", gin.H{})
+	})
+
+	router.POST("/login", func(c *gin.Context) {
+		email := c.PostForm("email")
+		user := c.PostForm("user")
+		password := c.PostForm("password")
+
+		h := sha512.New()
+		h.Write([]byte(password))
+
+		err = database.AddUser(email, user, h.Sum(nil))
+		if err != nil {
+			log.Fatal(err)
+		}
 	})
 
 	router.GET("/", func(c *gin.Context) {
