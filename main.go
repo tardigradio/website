@@ -82,6 +82,15 @@ func main() {
 
 	private := router.Group("/upload")
 	{
+
+    private.GET("/logout", func(c *gin.Context) {
+      session := sessions.Default(c)
+
+      session.Delete("user")
+
+	    c.String(http.StatusOK, "Logged out")
+		})
+
 		private.GET("/upload", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
 		})
