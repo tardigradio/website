@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha512"
 	"fmt"
 	"log"
 	"net/http"
@@ -57,7 +58,7 @@ func main() {
 		// single file
 		title := c.PostForm("songTitle")
 		description := c.PostForm("songDesc")
-    user_id := 0
+		user_id := 0
 
 		file, _ := c.FormFile("file")
 		log.Println(file.Filename, title, description)
@@ -73,7 +74,21 @@ func main() {
 	})
 
 	router.GET("/login", func(c *gin.Context) {
-		c.String(http.StatusOK, "login")
+		c.HTML(http.StatusOK, "login.tmpl", gin.H{})
+	})
+
+	router.POST("/login", func(c *gin.Context) {
+		email := c.PostForm("email")
+		user := c.PostForm("user")
+		password := c.PostForm("password")
+
+		h := sha512.New()
+		h.Write([]byte(password))
+
+		err = database.AddUser(email, user, h.Sum(nil))
+		if err != nil {
+			log.Fatal(err)
+		}
 	})
 
 	router.GET("/", func(c *gin.Context) {
