@@ -80,48 +80,45 @@ func main() {
 		})
 	})
 
-	private := router.Group("/upload")
-	{
-
-    private.GET("/logout", func(c *gin.Context) {
+	user := router.Group("/useraction")
+  user.Use(AuthRequired())
+  {
+    user.GET("/logout", func(c *gin.Context) {
       session := sessions.Default(c)
 
       session.Delete("user")
+      session.Save()
 
-	    c.String(http.StatusOK, "Logged out")
-		})
+    })
 
-		private.GET("/upload", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
-		})
+    user.GET("/upload", func(c *gin.Context) {
+      c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
+    })
 
-		private.POST("/upload", func(c *gin.Context) {
-			session := sessions.Default(c)
-			// single file
-			title := c.PostForm("songTitle")
-			description := c.PostForm("songDesc")
+    user.POST("/upload", func(c *gin.Context) {
+      session := sessions.Default(c)
+      // single file
+      title := c.PostForm("songTitle")
+      description := c.PostForm("songDesc")
 
-			var user db.User
-			user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
-			if err != nil {
-				log.Fatal(err)
-			}
+      var user db.User
+      user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
+      if err != nil {
+        log.Fatal(err)
+      }
 
-			file, _ := c.FormFile("file")
-			log.Println(file.Filename, title, description)
+      file, _ := c.FormFile("file")
+      log.Println(file.Filename, title, description)
 
-			// Upload the file to STORJ
-			// TODO: Add song to bucket sj://username
-			database.AddSong(title, description, user.ID)
+      // Upload the file to STORJ
+      // TODO: Add song to bucket sj://username
+      database.AddSong(title, description, user.ID)
 
-			// Redirect to homepage
-			c.Request.URL.Path = "/"
-			router.HandleContext(c)
-		})
-	}
-
-	private.Use(AuthRequired())
-
+      // Redirect to homepage
+      c.Request.URL.Path = "/"
+      router.HandleContext(c)
+    })
+  }
 	router.GET("/register", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "register.tmpl", gin.H{})
 	})
@@ -165,7 +162,8 @@ func main() {
 
 		user, err := database.GetUser(username)
 		if err != nil {
-			log.Fatal(err)
+      c.String(http.StatusInternalServerError, "Invalid username or password")
+			return
 		}
 
 		if !bytes.Equal(hash, user.Hash) {
@@ -184,13 +182,11 @@ func main() {
 		var popular []string
 		var recent []string
 
-		username := fmt.Sprintf("%s", session.Get("user"))
-
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
 			"title":       "Tardigraud.io",
 			"popular":     popular,
 			"recent":      recent,
-			"currentUser": username,
+			"currentUser": session.Get("user"),
 		})
 	})
 
