@@ -40,16 +40,6 @@ func AuthRequired() gin.HandlerFunc {
 }
 
 func main() {
-	// clientCfg := &miniogw.ClientConfig{
-	// 	OverlayAddr:   "satellite.staging.storj.io:7777",
-	// 	PointerDBAddr: "satellite.staging.storj.io:7777",
-	// 	APIKey:        "CribRetrievableEyebrows",
-	// }
-	//
-	// cfg := &miniogw.Config{
-	// 	ClientConfig{clientCfg},
-	// }
-
 	context := context.Background()
 	port := "8080"
 
@@ -147,10 +137,10 @@ func main() {
 		})
 	})
 
-	user := router.Group("/useraction")
-	user.Use(AuthRequired())
+	private := router.Group("/useraction")
+	private.Use(AuthRequired())
 	{
-		user.GET("/logout", func(c *gin.Context) {
+		private.GET("/logout", func(c *gin.Context) {
 			session := sessions.Default(c)
 
 			session.Delete("user")
@@ -160,7 +150,7 @@ func main() {
 			router.HandleContext(c)
 		})
 
-		user.GET("/upload", func(c *gin.Context) {
+		private.GET("/upload", func(c *gin.Context) {
 			session := sessions.Default(c)
 
 			c.HTML(http.StatusOK, "upload.tmpl", gin.H{
@@ -168,7 +158,7 @@ func main() {
 			})
 		})
 
-		user.POST("/upload", func(c *gin.Context) {
+		private.POST("/upload", func(c *gin.Context) {
 			session := sessions.Default(c)
 			// single file
 			title := c.PostForm("songTitle")
@@ -181,14 +171,14 @@ func main() {
 			}
 
 			fileHeader, _ := c.FormFile("file")
-			log.Println(fileHeader.Filename, title, description)
 
 			file, err := fileHeader.Open()
 			if err != nil {
 				log.Fatal(err)
 			}
+			defer file.Close()
+
 			// Upload the file to STORJ
-			// TODO: Add song to bucket sj://username
 			o, err := bs.GetObjectStore(context, user.Username)
 			if err != nil {
 				log.Fatal(err)
@@ -201,11 +191,15 @@ func main() {
 				log.Fatal(err)
 			}
 
-			database.AddSong(title, description, user.ID)
+			err = database.AddSong(title, description, user.ID)
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			// Redirect to homepage
 			c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", title))
 			router.HandleContext(c)
+			return
 		})
 	}
 

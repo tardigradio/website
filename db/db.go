@@ -115,7 +115,6 @@ func (db *DB) GetUser(user string) (result User, err error) {
 
 	row := db.DB.QueryRow("SELECT * FROM users WHERE username=?;", user)
 	err = row.Scan(&result.ID, &result.Created, &result.Email, &result.Hash, &result.Username)
-	fmt.Println(result)
 	return result, err
 }
 
