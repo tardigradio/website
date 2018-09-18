@@ -18,11 +18,11 @@ type DB struct {
 }
 
 type User struct {
-	id       int
-	created  int
-	email    string
-	hash     []byte
-	username string
+	ID       int
+	Created  int
+	Email    string
+	Hash     []byte
+	Username string
 }
 
 func Open(ctx context.Context, DBPath string) (*DB, error) {
@@ -110,11 +110,11 @@ func (db *DB) AddUser(email, username string, hash []byte) error {
 }
 
 // GetUser checks if user and password combo exist in the database
-func (db *DB) GetUser(user string, hash []byte) (result User, err error) {
+func (db *DB) GetUser(user string) (result User, err error) {
 	defer db.locked()()
 
-	row := db.DB.QueryRow("SELECT * FROM users WHERE hash=? && username=?;", hash, user)
-	err = row.Scan(&result.id, &result.created, &result.email, &result.hash, &result.username)
+	row := db.DB.QueryRow("SELECT * FROM users WHERE username=?;", user)
+	err = row.Scan(&result.ID, &result.Created, &result.Email, &result.Hash, &result.Username)
 
 	return result, err
 }
