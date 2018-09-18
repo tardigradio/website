@@ -60,14 +60,23 @@ func main() {
 	router.LoadHTMLGlob("templates/*")
 
 	router.GET("/user/:name", func(c *gin.Context) {
-		name := c.Param("name")
-		c.String(http.StatusOK, "Hello %s", name)
+		username := c.Param("name")
+    email := ""
+    uploads := []string{}
+		c.HTML(http.StatusOK, "user.tmpl", gin.H{
+      "username": username,
+      "email": email,
+      "uploads": uploads,
+    })
 	})
 
 	router.GET("/user/:name/*song", func(c *gin.Context) {
-		name := c.Param("name")
+		username := c.Param("name")
 		song := c.Param("song")
-		c.String(http.StatusOK, "%s: %s", name, song)
+		c.HTML(http.StatusOK, "song.tmpl", gin.H{
+      "username": username,
+      "song": song,
+    })
 	})
 
   private := router.Group("/upload")

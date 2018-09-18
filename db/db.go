@@ -42,7 +42,7 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `users` (`id` INTEGER PRIMARY KEY, `created` INTEGER, `email` TEXT UNIQUE, `hash` BLOB, `username` TEXT);")
+	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `users` (`id` INTEGER PRIMARY KEY, `created` INTEGER, `email` TEXT UNIQUE, `hash` BLOB, `username` TEXT UNIQUE);")
 	if err != nil {
 		return nil, err
 	}
