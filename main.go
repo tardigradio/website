@@ -1,7 +1,7 @@
 package main
 
 import (
-  "bytes"
+	"bytes"
 	"context"
 	"crypto/sha512"
 	"fmt"
@@ -101,11 +101,11 @@ func main() {
 			title := c.PostForm("songTitle")
 			description := c.PostForm("songDesc")
 
-      var user db.User
-  		user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
-  		if err != nil {
-  			log.Fatal(err)
-  		}
+			var user db.User
+			user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
+			if err != nil {
+				log.Fatal(err)
+			}
 
 			file, _ := c.FormFile("file")
 			log.Println(file.Filename, title, description)
@@ -114,9 +114,9 @@ func main() {
 			// TODO: Add song to bucket sj://username
 			database.AddSong(title, description, user.ID)
 
-      // Redirect to homepage
-      c.Request.URL.Path = "/"
-      router.HandleContext(c)
+			// Redirect to homepage
+			c.Request.URL.Path = "/"
+			router.HandleContext(c)
 		})
 	}
 
@@ -139,7 +139,7 @@ func main() {
 		if err != nil {
 			log.Println(err)
 			c.String(http.StatusInternalServerError, "Failed to register")
-      return
+			return
 		} else {
 			// TODO: Create bucket for user with the same name as the user sj://username
 			session.Set("user", username)
@@ -154,45 +154,43 @@ func main() {
 	})
 
 	router.POST("/login", func(c *gin.Context) {
-    session := sessions.Default(c)
+		session := sessions.Default(c)
 
-		var user db.User
 		username := c.PostForm("username")
 		password := c.PostForm("password")
 
 		h := sha512.New()
 		h.Write([]byte(password))
-    hash := h.Sum(nil)
+		hash := h.Sum(nil)
 
 		user, err := database.GetUser(username)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-    if !bytes.Equal(hash, user.Hash) {
-      c.String(http.StatusInternalServerError, "Invalid username or password")
-      return
-    }
+		if !bytes.Equal(hash, user.Hash) {
+			c.String(http.StatusInternalServerError, "Invalid username or password")
+			return
+		}
 
-    session.Set("user", username)
-    session.Save()
+		session.Set("user", username)
+		session.Save()
 
 		c.String(http.StatusOK, fmt.Sprintf("'%s' logged in!", username))
 	})
 
 	router.GET("/", func(c *gin.Context) {
-    session := sessions.Default(c)
+		session := sessions.Default(c)
 		var popular []string
 		var recent []string
 
-    username := fmt.Sprintf("%s", session.Get("user"))
-
+		username := fmt.Sprintf("%s", session.Get("user"))
 
 		c.HTML(http.StatusOK, "index.tmpl", gin.H{
-			"title":   "Tardigraud.io",
-			"popular": popular,
-			"recent":  recent,
-      "currentUser": username,
+			"title":       "Tardigraud.io",
+			"popular":     popular,
+			"recent":      recent,
+			"currentUser": username,
 		})
 	})
 
