@@ -147,7 +147,6 @@ func main() {
 	router.POST("/login", func(c *gin.Context) {
 		session := sessions.Default(c)
 
-		var user db.User
 		username := c.PostForm("username")
 		password := c.PostForm("password")
 
