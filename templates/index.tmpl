@@ -1,7 +1,7 @@
 <html>
 	<h1>{{ .title }}</h1>
   <body>
-		<a href="/register">register</a> | <a href="/login">login</a>
+		{{if .currentUser}}<a href="/user/{{.currentUser}}">account</a> | logout {{else}}<a href="/register">register</a> | <a href="/login">login</a>{{end}}
     <div id="recent">
       <h2>Recent Uploads</h2>
       {{range .recent}}
