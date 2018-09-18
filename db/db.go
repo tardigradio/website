@@ -88,7 +88,7 @@ func (db *DB) AddComment(text string, userID, commentID, songID int) error {
 	defer db.locked()()
 
 	created := time.Now().Unix()
-	_, err := db.DB.Exec("INSERT INTO songs (text, created, user_id, comment_id, song_id) VALUES (?, ?, ?, ?, ?)", text, created, userID, commentID, songID)
+	_, err := db.DB.Exec("INSERT INTO comments (text, created, user_id, comment_id, song_id) VALUES (?, ?, ?, ?, ?)", text, created, userID, commentID, songID)
 	return err
 }
 
@@ -97,7 +97,7 @@ func (db *DB) AddUser(email, username string, hash []byte) error {
 	defer db.locked()()
 
 	created := time.Now().Unix()
-	_, err := db.DB.Exec("INSERT INTO songs (created, email, hash, username) VALUES (?, ?, ?, ?)", created, email, hash, username)
+	_, err := db.DB.Exec("INSERT INTO users (created, email, hash, username) VALUES (?, ?, ?, ?)", created, email, hash, username)
 	return err
 }
 
