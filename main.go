@@ -11,11 +11,18 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/tardigraudio/website/db"
+	"storj.io/storj/cmd/uplink/cmd"
+	"storj.io/storj/pkg/miniogw"
+	"storj.io/storj/pkg/paths"
+	"storj.io/storj/pkg/provider"
+	"storj.io/storj/pkg/storage/objects"
+	"storj.io/storj/storage"
 )
 
 func AuthRequired() gin.HandlerFunc {
@@ -33,6 +40,16 @@ func AuthRequired() gin.HandlerFunc {
 }
 
 func main() {
+	// clientCfg := &miniogw.ClientConfig{
+	// 	OverlayAddr:   "satellite.staging.storj.io:7777",
+	// 	PointerDBAddr: "satellite.staging.storj.io:7777",
+	// 	APIKey:        "CribRetrievableEyebrows",
+	// }
+	//
+	// cfg := &miniogw.Config{
+	// 	ClientConfig{clientCfg},
+	// }
+
 	context := context.Background()
 	port := "8080"
 
@@ -52,6 +69,47 @@ func main() {
 		log.Fatal(err)
 	}
 
+	identityCfg := provider.IdentityConfig{
+		CertPath: filepath.Join(usr.HomeDir, ".storj/uplink/identity.cert"),
+		KeyPath:  filepath.Join(usr.HomeDir, ".storj/uplink/identity.key"),
+		Address:  ":7777",
+	}
+
+	minioCfg := miniogw.MinioConfig{
+		AccessKey: "3ee4E2vqy3myfKdPnuPKTQQavtqx",
+		SecretKey: "3H1BL6sKtiRCrs9VxCbw9xboYsXp",
+		MinioDir:  filepath.Join(usr.HomeDir, ".storj/uplink/miniogw"),
+	}
+
+	clientCfg := miniogw.ClientConfig{
+		OverlayAddr:   "satellite.staging.storj.io:7777",
+		PointerDBAddr: "satellite.staging.storj.io:7777",
+		APIKey:        "CribRetrievableEyebrows",
+		MaxInlineSize: 4096,
+		SegmentSize:   64000000,
+	}
+
+	rsCfg := miniogw.RSConfig{
+		MaxBufferMem:     0x400000,
+		ErasureShareSize: 1024,
+		MinThreshold:     20,
+		RepairThreshold:  30,
+		SuccessThreshold: 40,
+		MaxThreshold:     50,
+	}
+
+	storjCfg := miniogw.Config{
+		identityCfg,
+		minioCfg,
+		clientCfg,
+		rsCfg,
+	}
+
+	cfg := &cmd.Config{storjCfg}
+
+	fmt.Println(cfg)
+	bs, err := cfg.BucketStore(context)
+
 	database, err := db.Open(context, filepath.Join(usr.HomeDir, "/.tardigraudio"))
 	if err != nil {
 		panic(err)
@@ -59,19 +117,28 @@ func main() {
 	defer database.Close()
 
 	router.LoadHTMLGlob("templates/*")
+	router.Static("assets/css", "assets/css")
 
 	router.GET("/user/:name", func(c *gin.Context) {
+		session := sessions.Default(c)
 		username := c.Param("name")
-		email := ""
+
+		var user db.User
+		user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		uploads := []string{}
 		c.HTML(http.StatusOK, "user.tmpl", gin.H{
 			"username": username,
-			"email":    email,
+			"email":    user.Email,
 			"uploads":  uploads,
 		})
 	})
 
 	router.GET("/user/:name/*song", func(c *gin.Context) {
+		// session := sessions.Default(c)
 		username := c.Param("name")
 		song := c.Param("song")
 		c.HTML(http.StatusOK, "song.tmpl", gin.H{
@@ -81,44 +148,67 @@ func main() {
 	})
 
 	user := router.Group("/useraction")
-  user.Use(AuthRequired())
-  {
-    user.GET("/logout", func(c *gin.Context) {
-      session := sessions.Default(c)
+	user.Use(AuthRequired())
+	{
+		user.GET("/logout", func(c *gin.Context) {
+			session := sessions.Default(c)
 
-      session.Delete("user")
-      session.Save()
+			session.Delete("user")
+			session.Save()
 
-    })
+			c.String(http.StatusOK, "Successfully Logged out")
+			router.HandleContext(c)
+		})
 
-    user.GET("/upload", func(c *gin.Context) {
-      c.HTML(http.StatusOK, "upload.tmpl", gin.H{})
-    })
+		user.GET("/upload", func(c *gin.Context) {
+			session := sessions.Default(c)
 
-    user.POST("/upload", func(c *gin.Context) {
-      session := sessions.Default(c)
-      // single file
-      title := c.PostForm("songTitle")
-      description := c.PostForm("songDesc")
+			c.HTML(http.StatusOK, "upload.tmpl", gin.H{
+				"currentUser": session.Get("user"),
+			})
+		})
 
-      var user db.User
-      user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
-      if err != nil {
-        log.Fatal(err)
-      }
+		user.POST("/upload", func(c *gin.Context) {
+			session := sessions.Default(c)
+			// single file
+			title := c.PostForm("songTitle")
+			description := c.PostForm("songDesc")
 
-      file, _ := c.FormFile("file")
-      log.Println(file.Filename, title, description)
+			var user db.User
+			user, err := database.GetUser(fmt.Sprintf("%s", session.Get("user")))
+			if err != nil {
+				log.Fatal(err)
+			}
 
-      // Upload the file to STORJ
-      // TODO: Add song to bucket sj://username
-      database.AddSong(title, description, user.ID)
+			fileHeader, _ := c.FormFile("file")
+			log.Println(fileHeader.Filename, title, description)
 
-      // Redirect to homepage
-      c.Request.URL.Path = "/"
-      router.HandleContext(c)
-    })
-  }
+			file, err := fileHeader.Open()
+			if err != nil {
+				log.Fatal(err)
+			}
+			// Upload the file to STORJ
+			// TODO: Add song to bucket sj://username
+			o, err := bs.GetObjectStore(context, user.Username)
+			if err != nil {
+				log.Fatal(err)
+			}
+			meta := objects.SerializableMeta{}
+			expTime := time.Time{}
+
+			_, err = o.Put(context, paths.New(fileHeader.Filename), file, meta, expTime)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			database.AddSong(title, description, user.ID)
+
+			// Redirect to homepage
+			c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", title))
+			router.HandleContext(c)
+		})
+	}
+
 	router.GET("/register", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "register.tmpl", gin.H{})
 	})
@@ -139,10 +229,23 @@ func main() {
 			return
 		} else {
 			// TODO: Create bucket for user with the same name as the user sj://username
+			_, err = bs.Get(context, username)
+			if err == nil {
+				log.Fatal("Bucket already exists")
+			}
+			if !storage.ErrKeyNotFound.Has(err) {
+				log.Fatal(err)
+			}
+			_, err = bs.Put(context, username)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			fmt.Printf("Bucket %s created\n", username)
+
 			session.Set("user", username)
 			session.Save()
 			c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
-
 		}
 	})
 
@@ -162,7 +265,7 @@ func main() {
 
 		user, err := database.GetUser(username)
 		if err != nil {
-      c.String(http.StatusInternalServerError, "Invalid username or password")
+			c.String(http.StatusInternalServerError, "Invalid username or password")
 			return
 		}
 
