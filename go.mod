@@ -4,11 +4,15 @@ require (
 	9fans.net/go v0.0.0-20180727211846-5d4fa602e1e8 // indirect
 	github.com/alecthomas/gometalinter v2.0.11+incompatible // indirect
 	github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf // indirect
+	github.com/boj/redistore v0.0.0-20180917114910-cd5dcc76aeff // indirect
 	github.com/fatih/gomodifytags v0.0.0-20180914191908-141225bf62b6 // indirect
+	github.com/gin-contrib/sessions v0.0.0-20180827025425-58cbcf30135c
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 // indirect
+	github.com/gin-gonic/contrib v0.0.0-20180614032058-39cfb9727134
 	github.com/gin-gonic/gin v1.3.0
 	github.com/golang/protobuf v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20150127133951-6f45313302b9 // indirect
+	github.com/gorilla/sessions v1.1.2
 	github.com/julienschmidt/httprouter v0.0.0-20180715161854-348b672cd90d // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
 	github.com/mattn/go-sqlite3 v1.9.0
