@@ -88,7 +88,6 @@ func main() {
 
 		private.POST("/upload", func(c *gin.Context) {
 			session := sessions.Default(c)
-
 			// single file
 			title := c.PostForm("songTitle")
 			description := c.PostForm("songDesc")
