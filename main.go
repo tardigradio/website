@@ -88,6 +88,7 @@ func main() {
 		private.POST("/upload", func(c *gin.Context) {
 			session := sessions.Default(c)
 			username := session.Get("user")
+			fmt.Println(username)
 			// single file
 			title := c.PostForm("songTitle")
 			description := c.PostForm("songDesc")
