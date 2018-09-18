@@ -113,8 +113,8 @@ func (db *DB) AddUser(email, username string, hash []byte) error {
 func (db *DB) GetUser(user string) (result User, err error) {
 	defer db.locked()()
 
-	row := db.DB.QueryRow("SELECT * FROM users WHERE hash=? && username=?;", hash, user)
-	err = row.Scan(&result.id, &result.created, &result.email, &result.hash, &result.username)
+	row := db.DB.QueryRow("SELECT * FROM users WHERE username=?;", user)
+	err = row.Scan(&result.ID, &result.Created, &result.Email, &result.Hash, &result.Username)
 	fmt.Println(result)
 	return result, err
 }
