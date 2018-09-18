@@ -125,14 +125,14 @@ func main() {
 	})
 
 	router.POST("/login", func(c *gin.Context) {
-		email := c.PostForm("email")
-		user := c.PostForm("user")
+		var user db.User
+		username := c.PostForm("username")
 		password := c.PostForm("password")
 
 		h := sha512.New()
 		h.Write([]byte(password))
 
-		err = database.AddUser(email, user, h.Sum(nil))
+		user, err := database.GetUser(username, h.Sum(nil))
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -17,6 +17,14 @@ type DB struct {
 	mu sync.Mutex
 }
 
+type User struct {
+	id       int
+	created  int
+	email    string
+	hash     []byte
+	username string
+}
+
 func Open(ctx context.Context, DBPath string) (*DB, error) {
 	if err := os.MkdirAll(filepath.Dir(DBPath), 0700); err != nil {
 		return nil, err
@@ -42,7 +50,7 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `users` (`id` INTEGER PRIMARY KEY, `created` INTEGER, `email` TEXT UNIQUE, `hash` BLOB, `username` TEXT);")
+	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `users` (`id` INTEGER PRIMARY KEY, `created` INTEGER, `email` TEXT UNIQUE, `hash` BLOB, `username` TEXT UNIQUE);")
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +107,16 @@ func (db *DB) AddUser(email, username string, hash []byte) error {
 	created := time.Now().Unix()
 	_, err := db.DB.Exec("INSERT INTO users (created, email, hash, username) VALUES (?, ?, ?, ?)", created, email, hash, username)
 	return err
+}
+
+// GetUser checks if user and password combo exist in the database
+func (db *DB) GetUser(user string, hash []byte) (result User, err error) {
+	defer db.locked()()
+
+	row := db.DB.QueryRow("SELECT * FROM users WHERE hash=? && username=?;", hash, user)
+	err = row.Scan(&result.id, &result.created, &result.email, &result.hash, &result.username)
+
+	return result, err
 }
 
 // Close the database
