@@ -64,11 +64,17 @@ func (s *Server) GetRoot(c *gin.Context) {
 	var popular []string
 	var recent []string
 
+	var username string
+	user, err := s.getCurrentUserFromDbBy(session)
+	if err == nil {
+		username = user.Username
+	}
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
 		"title":       "Tardigraud.io",
 		"popular":     popular,
 		"recent":      recent,
-		"currentUser": session.Get("user"),
+		"currentUser": username,
 	})
 	return
 }
@@ -81,12 +87,18 @@ func (s *Server) PostLogin(c *gin.Context) {
 
 	hash := getHashFrom([]byte(password))
 
-	if !s.Validated(username, hash) {
+	user, err := s.DB.GetUserByName(username)
+	if err != nil {
 		c.String(http.StatusInternalServerError, "Invalid username or password")
 		return
 	}
 
-	session.Set("user", username)
+	if !s.Validated(user.ID, hash) {
+		c.String(http.StatusInternalServerError, "Invalid username or password")
+		return
+	}
+
+	session.Set("user", user.ID)
 	session.Save()
 
 	c.String(http.StatusOK, fmt.Sprintf("'%s' logged in!", username))
@@ -106,7 +118,7 @@ func (s *Server) PostRegister(c *gin.Context) {
 
 	hash := getHashFrom([]byte(password))
 
-	err := s.DB.AddUser(email, username, hash)
+	id, err := s.DB.AddUser(email, username, hash)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Failed to register")
 		return
@@ -128,7 +140,7 @@ func (s *Server) PostRegister(c *gin.Context) {
 
 		log.Printf("Bucket %s created\n", username)
 
-		session.Set("user", username)
+		session.Set("user", id)
 		session.Save()
 		c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
 		return
@@ -151,9 +163,9 @@ func (s *Server) GetLogout(c *gin.Context) {
 }
 
 func (s *Server) GetSong(c *gin.Context) {
-	// session := sessions.Default(c)
 	username := c.Param("name")
 	song := c.Param("song")
+
 	c.HTML(http.StatusOK, "song.tmpl", gin.H{
 		"username": username,
 		"song":     song,
@@ -171,7 +183,6 @@ func (s *Server) GetUpload(c *gin.Context) {
 
 func (s *Server) PostUpload(c *gin.Context) {
 	session := sessions.Default(c)
-	// single file
 	title := c.PostForm("songTitle")
 	description := c.PostForm("songDesc")
 
@@ -218,13 +229,13 @@ func (s *Server) GetUser(c *gin.Context) {
 	username := c.Param("name")
 
 	var user db.User
-	user, err := s.DB.GetUser(username)
+	user, err := s.DB.GetUserByName(username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	uploads, err := s.DB.GetSongs(user.ID)
+	uploads, err := s.DB.GetSongsForUser(user.ID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -240,7 +251,7 @@ func (s *Server) GetUser(c *gin.Context) {
 func (s *Server) DeleteUser(c *gin.Context) {
 	session := sessions.Default(c)
 
-	username, err := getCurrentUserFrom(session)
+	user, err := s.getCurrentUserFromDbBy(session)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -249,12 +260,12 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	password := c.PostForm("password")
 	hash := getHashFrom([]byte(password))
 
-	if !s.Validated(username, hash) {
+	if !s.Validated(user.ID, hash) {
 		c.String(http.StatusInternalServerError, "Invalid username or password")
 		return
 	}
 
-	err = s.DB.DeleteUser(username)
+	err = s.DB.DeleteUser(user.ID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -271,8 +282,8 @@ func (s *Server) DeleteUser(c *gin.Context) {
 }
 
 // Validate a user
-func (s *Server) Validated(username string, hash []byte) bool {
-	userhash, err := s.DB.GetUserHash(username)
+func (s *Server) Validated(userID int, hash []byte) bool {
+	userhash, err := s.DB.GetUserHash(userID)
 	if err != nil {
 		return false
 	}
@@ -284,13 +295,13 @@ func (s *Server) Validated(username string, hash []byte) bool {
 	return true
 }
 
-func getCurrentUserFrom(session sessions.Session) (string, error) {
+func getCurrentUserFrom(session sessions.Session) (int, error) {
 	sessionUser := session.Get("user")
-	log.Println(sessionUser)
 	if sessionUser == nil {
-		return "", errors.New("User is logged in")
+		return 0, errors.New("User is not logged in")
 	}
-	return fmt.Sprintf("%s", sessionUser), nil
+
+	return sessionUser.(int), nil
 }
 
 func getHashFrom(salt []byte) []byte {
@@ -302,12 +313,12 @@ func getHashFrom(salt []byte) []byte {
 func (s *Server) getCurrentUserFromDbBy(session sessions.Session) (db.User, error) {
 	var user db.User
 
-	username, err := getCurrentUserFrom(session)
+	userID, err := getCurrentUserFrom(session)
 	if err != nil {
 		return user, err
 	}
 
-	user, err = s.DB.GetUser(username)
+	user, err = s.DB.GetUserByID(userID)
 	if err != nil {
 		return user, err
 	}

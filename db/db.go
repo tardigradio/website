@@ -125,18 +125,22 @@ func (db *DB) AddComment(text string, userID, commentID, songID int) error {
 }
 
 // AddUser to the database
-func (db *DB) AddUser(email, username string, hash []byte) error {
+func (db *DB) AddUser(email, username string, hash []byte) (int64, error) {
 	defer db.locked()()
 
 	created := time.Now().Unix()
-	_, err := db.DB.Exec("INSERT INTO users (created, email, hash, username) VALUES (?, ?, ?, ?)", created, email, hash, username)
-	return err
+	res, err := db.DB.Exec("INSERT INTO users (created, email, hash, username) VALUES (?, ?, ?, ?);", created, email, hash, username)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.LastInsertId()
 }
 
 // DeleteUser from the database
-func (db *DB) DeleteUser(username string) error {
+func (db *DB) DeleteUser(userID int) error {
 	defer db.locked()()
-	_, err := db.DB.Exec(`DELETE FROM users WHERE username=?`, username)
+	_, err := db.DB.Exec(`DELETE FROM users WHERE id=?`, userID)
 	if err == sql.ErrNoRows {
 		err = nil
 	}
@@ -144,7 +148,16 @@ func (db *DB) DeleteUser(username string) error {
 }
 
 // GetUser checks if user exists in the database
-func (db *DB) GetUser(user string) (result User, err error) {
+func (db *DB) GetUserByID(userID int) (result User, err error) {
+	defer db.locked()()
+
+	row := db.DB.QueryRow("SELECT id,created,email,username FROM users WHERE id=? LIMIT 1;", userID)
+	err = row.Scan(&result.ID, &result.Created, &result.Email, &result.Username)
+	return result, err
+}
+
+// GetUser checks if user exists in the database
+func (db *DB) GetUserByName(user string) (result User, err error) {
 	defer db.locked()()
 
 	row := db.DB.QueryRow("SELECT id,created,email,username FROM users WHERE username=? LIMIT 1;", user)
@@ -152,7 +165,7 @@ func (db *DB) GetUser(user string) (result User, err error) {
 	return result, err
 }
 
-func (db *DB) GetSongs(userID int) (songs []string, err error) {
+func (db *DB) GetSongsForUser(userID int) (songs []string, err error) {
 	defer db.locked()()
 
 	rows, err := db.DB.Query("SELECT title FROM songs WHERE user_id=?;", userID)
@@ -174,10 +187,10 @@ func (db *DB) GetSongs(userID int) (songs []string, err error) {
 	return songs, err
 }
 
-func (db *DB) GetUserHash(user string) (hash []byte, err error) {
+func (db *DB) GetUserHash(userID int) (hash []byte, err error) {
 	defer db.locked()()
 
-	row := db.DB.QueryRow("SELECT hash FROM users WHERE username=? LIMIT 1;", user)
+	row := db.DB.QueryRow("SELECT hash FROM users WHERE id=? LIMIT 1;", userID)
 	err = row.Scan(&hash)
 	return hash, err
 }
