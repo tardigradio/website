@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha512"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -78,11 +79,9 @@ func (s *Server) PostLogin(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	h := sha512.New()
-	h.Write([]byte(password))
-	hash := h.Sum(nil)
+	hash := getHashFrom([]byte(password))
 
-	if !s.Validated(fmt.Sprintf("%s", session.Get("user")), hash) {
+	if !s.Validated(username, hash) {
 		c.String(http.StatusInternalServerError, "Invalid username or password")
 		return
 	}
@@ -105,10 +104,9 @@ func (s *Server) PostRegister(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	h := sha512.New()
-	h.Write([]byte(password))
+	hash := getHashFrom([]byte(password))
 
-	err := s.DB.AddUser(email, username, h.Sum(nil))
+	err := s.DB.AddUser(email, username, hash)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Failed to register")
 		return
@@ -177,8 +175,14 @@ func (s *Server) PostUpload(c *gin.Context) {
 	title := c.PostForm("songTitle")
 	description := c.PostForm("songDesc")
 
+	username, err := getCurrentUserFrom(session)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	var user db.User
-	user, err := s.DB.GetUser(fmt.Sprintf("%s", session.Get("user")))
+	user, err = s.DB.GetUser(username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -239,18 +243,22 @@ func (s *Server) GetUser(c *gin.Context) {
 
 func (s *Server) DeleteUser(c *gin.Context) {
 	session := sessions.Default(c)
+
+	username, err := getCurrentUserFrom(session)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	password := c.PostForm("password")
+	hash := getHashFrom([]byte(password))
 
-	h := sha512.New()
-	h.Write([]byte(password))
-	hash := h.Sum(nil)
-
-	if !s.Validated(fmt.Sprintf("%s", session.Get("user")), hash) {
+	if !s.Validated(username, hash) {
 		c.String(http.StatusInternalServerError, "Invalid username or password")
 		return
 	}
 
-	err := s.DB.DeleteUser(fmt.Sprintf("%s", session.Get("user")))
+	err = s.DB.DeleteUser(username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -278,4 +286,18 @@ func (s *Server) Validated(username string, hash []byte) bool {
 	}
 
 	return true
+}
+
+func getCurrentUserFrom(session sessions.Session) (string, error) {
+	sessionUser := session.Get("user")
+	if sessionUser == nil {
+		return "", errors.New("User is logged in")
+	}
+	return fmt.Sprintf("%s", sessionUser), nil
+}
+
+func getHashFrom(salt []byte) []byte {
+	h := sha512.New()
+	h.Write(salt)
+	return h.Sum(nil)
 }
