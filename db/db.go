@@ -128,13 +128,35 @@ func (db *DB) DeleteUser(username string) error {
 	return err
 }
 
-// GetUser checks if user and password combo exist in the database
+// GetUser checks if user exists in the database
 func (db *DB) GetUser(user string) (result User, err error) {
 	defer db.locked()()
 
 	row := db.DB.QueryRow("SELECT id,created,email,username FROM users WHERE username=? LIMIT 1;", user)
 	err = row.Scan(&result.ID, &result.Created, &result.Email, &result.Username)
 	return result, err
+}
+
+func (db *DB) GetSongs(userID string) (songs []string, err error) {
+	defer db.locked()()
+
+	rows, err := db.DB.Query("SELECT title FROM songs WHERE user_id=?;", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var song string
+
+		if err := rows.Scan(&song); err != nil {
+			return nil, err
+		}
+
+		songs = append(songs, song)
+	}
+
+	return songs, err
 }
 
 func (db *DB) GetUserHash(user string) (hash []byte, err error) {
