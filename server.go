@@ -224,7 +224,11 @@ func (s *Server) GetUser(c *gin.Context) {
 		return
 	}
 
-	uploads := []string{}
+	uploads, err := s.DB.GetSongs(user.ID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
 	c.HTML(http.StatusOK, "user.tmpl", gin.H{
 		"username": username,
 		"email":    user.Email,
