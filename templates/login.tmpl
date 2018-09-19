@@ -18,7 +18,7 @@
           <a class="nav-link" href="/">Home</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/register">register</a>
+          <a class="nav-link" href="/guest/register">register</a>
         </li>
       </ul>
     </div>
@@ -27,7 +27,7 @@
 
   <body>
     <h1>Login</h1>
-    <form action="/login" method="post" enctype="multipart/form-data">
+    <form action="/guest/login" method="post" enctype="multipart/form-data">
       <div class="form-group col-lg-3">
         <label for="username">Username</label>
         <input type="text" name="username" class="form-control" id="username">
@@ -38,7 +38,7 @@
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
       <br /><br />
-      If you don't have an account please register <a href="/register">here</a>
+      If you don't have an account please register <a href="/guest/register">here</a>
     </form>
   </body>
 

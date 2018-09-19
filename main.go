@@ -25,6 +25,19 @@ func AuthRequired() gin.HandlerFunc {
 	}
 }
 
+func GuestRequired() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		session := sessions.Default(c)
+		_, err := getCurrentUserFrom(session)
+		if err == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "You are already logged in"})
+		} else {
+			// Continue down the chain to handler etc
+			c.Next()
+		}
+	}
+}
+
 func main() {
 	ctx := context.Background()
 	port := "8080"
@@ -43,7 +56,7 @@ func main() {
 	server.r.LoadHTMLGlob("templates/*")
 	server.r.Static("assets/css", "assets/css")
 
-	private := server.r.Group("/useraction")
+	private := server.r.Group("/active")
 	private.Use(AuthRequired())
 	{
 		private.GET("/logout", server.GetLogout)
@@ -54,10 +67,15 @@ func main() {
 
 	server.r.GET("/user/:name", server.GetUser)
 	server.r.GET("/user/:name/*song", server.GetSong)
-	server.r.GET("/register", server.GetRegister)
-	server.r.POST("/register", server.PostRegister)
-	server.r.GET("/login", server.GetLogin)
-	server.r.POST("/login", server.PostLogin)
+
+	guest := server.r.Group("/guest")
+	guest.Use(GuestRequired())
+	{
+		guest.GET("/register", server.GetRegister)
+		guest.POST("/register", server.PostRegister)
+		guest.GET("/login", server.GetLogin)
+		guest.POST("/login", server.PostLogin)
+	}
 
 	server.Run(fmt.Sprintf(":%s", port))
 }

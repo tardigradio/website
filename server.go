@@ -290,6 +290,7 @@ func (s *Server) Validated(username string, hash []byte) bool {
 
 func getCurrentUserFrom(session sessions.Session) (string, error) {
 	sessionUser := session.Get("user")
+	log.Println(sessionUser)
 	if sessionUser == nil {
 		return "", errors.New("User is logged in")
 	}
