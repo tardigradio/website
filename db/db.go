@@ -26,8 +26,9 @@ type User struct {
 
 type Song struct {
 	ID          int
-	Created     int
+	Title       string
 	Description string
+	Created     int
 	UserID      int
 }
 
@@ -61,7 +62,7 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 		return nil, err
 	}
 
-	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `songs` (`title` TEXT, `description` TEXT, `created` INTEGER, `user_id` INTEGER);")
+	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `songs` (`id` INTEGER PRIMARY KEY, `title` TEXT, `description` TEXT, `created` INTEGER, `user_id` INTEGER);")
 	if err != nil {
 		return nil, err
 	}
@@ -165,19 +166,19 @@ func (db *DB) GetUserByName(user string) (result User, err error) {
 	return result, err
 }
 
-func (db *DB) GetSongsForUser(userID int) (songs []string, err error) {
+func (db *DB) GetSongsForUser(userID int) (songs []Song, err error) {
 	defer db.locked()()
 
-	rows, err := db.DB.Query("SELECT title FROM songs WHERE user_id=?;", userID)
+	rows, err := db.DB.Query("SELECT * FROM songs WHERE user_id=?;", userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
-		var song string
+		var song Song
 
-		if err := rows.Scan(&song); err != nil {
+		if err := rows.Scan(&song.ID, &song.Title, &song.Description, &song.Created, &song.UserID); err != nil {
 			return nil, err
 		}
 
