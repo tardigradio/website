@@ -175,14 +175,7 @@ func (s *Server) PostUpload(c *gin.Context) {
 	title := c.PostForm("songTitle")
 	description := c.PostForm("songDesc")
 
-	username, err := getCurrentUserFrom(session)
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	var user db.User
-	user, err = s.DB.GetUser(username)
+	user, err := s.getCurrentUserFromDbBy(session)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -222,11 +215,10 @@ func (s *Server) PostUpload(c *gin.Context) {
 }
 
 func (s *Server) GetUser(c *gin.Context) {
-	session := sessions.Default(c)
 	username := c.Param("name")
 
 	var user db.User
-	user, err := s.DB.GetUser(fmt.Sprintf("%s", session.Get("user")))
+	user, err := s.DB.GetUser(username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -301,4 +293,20 @@ func getHashFrom(salt []byte) []byte {
 	h := sha512.New()
 	h.Write(salt)
 	return h.Sum(nil)
+}
+
+func (s *Server) getCurrentUserFromDbBy(session sessions.Session) (db.User, error) {
+	var user db.User
+
+	username, err := getCurrentUserFrom(session)
+	if err != nil {
+		return user, err
+	}
+
+	user, err = s.DB.GetUser(username)
+	if err != nil {
+		return user, err
+	}
+
+	return user, nil
 }
