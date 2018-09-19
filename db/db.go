@@ -91,6 +91,16 @@ func (db *DB) AddSong(title, description string, userID int) error {
 	return err
 }
 
+// DeleteSong from the database
+func (db *DB) DeleteSong(title string) error {
+	defer db.locked()()
+	_, err := db.DB.Exec(`DELETE FROM songs WHERE title=?`, title)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+	return err
+}
+
 // AddComment to the database
 func (db *DB) AddComment(text string, userID, commentID, songID int) error {
 	defer db.locked()()
@@ -106,6 +116,16 @@ func (db *DB) AddUser(email, username string, hash []byte) error {
 
 	created := time.Now().Unix()
 	_, err := db.DB.Exec("INSERT INTO users (created, email, hash, username) VALUES (?, ?, ?, ?)", created, email, hash, username)
+	return err
+}
+
+// DeleteUser from the database
+func (db *DB) DeleteUser(username string) error {
+	defer db.locked()()
+	_, err := db.DB.Exec(`DELETE FROM users WHERE username=?`, username)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
 	return err
 }
 

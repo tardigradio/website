@@ -49,6 +49,7 @@ func main() {
 		private.GET("/logout", server.GetLogout)
 		private.GET("/upload", server.GetUpload)
 		private.POST("/upload", server.PostUpload)
+		private.POST("/delete", server.DeleteUser)
 	}
 
 	server.r.GET("/user/:name", server.GetUser)

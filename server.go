@@ -82,13 +82,7 @@ func (s *Server) PostLogin(c *gin.Context) {
 	h.Write([]byte(password))
 	hash := h.Sum(nil)
 
-	user, err := s.DB.GetUser(username)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Invalid username or password")
-		return
-	}
-
-	if !bytes.Equal(hash, user.Hash) {
+	if !s.Validated(fmt.Sprintf("%s", session.Get("user")), hash) {
 		c.String(http.StatusInternalServerError, "Invalid username or password")
 		return
 	}
@@ -241,4 +235,47 @@ func (s *Server) GetUser(c *gin.Context) {
 		"uploads":  uploads,
 	})
 	return
+}
+
+func (s *Server) DeleteUser(c *gin.Context) {
+	session := sessions.Default(c)
+	password := c.PostForm("password")
+
+	h := sha512.New()
+	h.Write([]byte(password))
+	hash := h.Sum(nil)
+
+	if !s.Validated(fmt.Sprintf("%s", session.Get("user")), hash) {
+		c.String(http.StatusInternalServerError, "Invalid username or password")
+		return
+	}
+
+	err := s.DB.DeleteUser(fmt.Sprintf("%s", session.Get("user")))
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// TODO: Delete all songs in bucket
+	// TODO: Delete Bucket
+
+	session.Delete("user")
+	session.Save()
+
+	c.String(http.StatusOK, "Successfully deleted your account")
+	return
+}
+
+// Validate a user
+func (s *Server) Validated(username string, hash []byte) bool {
+	user, err := s.DB.GetUser(username)
+	if err != nil {
+		return false
+	}
+
+	if !bytes.Equal(hash, user.Hash) {
+		return false
+	}
+
+	return true
 }
