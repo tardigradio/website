@@ -24,6 +24,13 @@ type User struct {
 	Username string
 }
 
+type Song struct {
+	ID          int
+	Created     int
+	Description string
+	UserID      int
+}
+
 func Open(ctx context.Context, DBPath string) (*DB, error) {
 	if err := os.MkdirAll(filepath.Dir(DBPath), 0700); err != nil {
 		return nil, err
@@ -88,6 +95,14 @@ func (db *DB) AddSong(title, description string, userID int) error {
 	created := time.Now().Unix()
 	_, err := db.DB.Exec("INSERT INTO songs (title, description, created, user_id) VALUES (?, ?, ?, ?)", title, description, created, userID)
 	return err
+}
+
+func (db *DB) GetSong(id int) (result Song, err error) {
+	defer db.locked()()
+
+	row := db.DB.QueryRow("SELECT * FROM songs WHERE id=? LIMIT 1;", id)
+	err = row.Scan(&result.ID, &result.Description, &result.Created, &result.UserID)
+	return result, err
 }
 
 // DeleteSong from the database
