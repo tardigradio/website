@@ -272,12 +272,12 @@ func (s *Server) DeleteUser(c *gin.Context) {
 
 // Validate a user
 func (s *Server) Validated(username string, hash []byte) bool {
-	user, err := s.DB.GetUser(username)
+	userhash, err := s.DB.GetUserHash(username)
 	if err != nil {
 		return false
 	}
 
-	if !bytes.Equal(hash, user.Hash) {
+	if !bytes.Equal(hash, userhash) {
 		return false
 	}
 

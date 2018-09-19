@@ -21,7 +21,6 @@ type User struct {
 	ID       int
 	Created  int
 	Email    string
-	Hash     []byte
 	Username string
 }
 
@@ -133,8 +132,8 @@ func (db *DB) DeleteUser(username string) error {
 func (db *DB) GetUser(user string) (result User, err error) {
 	defer db.locked()()
 
-	row := db.DB.QueryRow("SELECT * FROM users WHERE username=?;", user)
-	err = row.Scan(&result.ID, &result.Created, &result.Email, &result.Hash, &result.Username)
+	row := db.DB.QueryRow("SELECT id,created,email,username FROM users WHERE username=? LIMIT 1;", user)
+	err = row.Scan(&result.ID, &result.Created, &result.Email, &result.Username)
 	return result, err
 }
 
@@ -158,6 +157,14 @@ func (db *DB) GetSongs(userID string) (songs []string, err error) {
 	}
 
 	return songs, err
+}
+
+func (db *DB) GetUserHash(user string) (hash []byte, err error) {
+	defer db.locked()()
+
+	row := db.DB.QueryRow("SELECT hash FROM users WHERE username=? LIMIT 1;", user)
+	err = row.Scan(&hash)
+	return hash, err
 }
 
 // Close the database
