@@ -152,7 +152,7 @@ func (db *DB) GetUser(user string) (result User, err error) {
 	return result, err
 }
 
-func (db *DB) GetSongs(userID string) (songs []string, err error) {
+func (db *DB) GetSongs(userID int) (songs []string, err error) {
 	defer db.locked()()
 
 	rows, err := db.DB.Query("SELECT title FROM songs WHERE user_id=?;", userID)
