@@ -69,6 +69,7 @@ func (s *Server) GetRoot(c *gin.Context) {
 		"recent":      recent,
 		"currentUser": session.Get("user"),
 	})
+	return
 }
 
 func (s *Server) PostLogin(c *gin.Context) {
@@ -96,10 +97,12 @@ func (s *Server) PostLogin(c *gin.Context) {
 	session.Save()
 
 	c.String(http.StatusOK, fmt.Sprintf("'%s' logged in!", username))
+	return
 }
 
 func (s *Server) GetLogin(c *gin.Context) {
 	c.HTML(http.StatusOK, "login.tmpl", gin.H{})
+	return
 }
 
 func (s *Server) PostRegister(c *gin.Context) {
@@ -113,33 +116,36 @@ func (s *Server) PostRegister(c *gin.Context) {
 
 	err := s.DB.AddUser(email, username, h.Sum(nil))
 	if err != nil {
-		log.Println(err)
 		c.String(http.StatusInternalServerError, "Failed to register")
 		return
 	} else {
-		// TODO: Create bucket for user with the same name as the user sj://username
 		_, err = s.bs.Get(c, username)
 		if err == nil {
-			log.Fatal("Bucket already exists")
+			c.String(http.StatusInternalServerError, "Bucket already exists")
+			return
 		}
 		if !storage.ErrKeyNotFound.Has(err) {
-			log.Fatal(err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
 		}
 		_, err = s.bs.Put(c, username)
 		if err != nil {
-			log.Fatal(err)
+			c.String(http.StatusInternalServerError, err.Error())
+			return
 		}
 
-		fmt.Printf("Bucket %s created\n", username)
+		log.Printf("Bucket %s created\n", username)
 
 		session.Set("user", username)
 		session.Save()
 		c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
+		return
 	}
 }
 
 func (s *Server) GetRegister(c *gin.Context) {
 	c.HTML(http.StatusOK, "register.tmpl", gin.H{})
+	return
 }
 
 func (s *Server) GetLogout(c *gin.Context) {
@@ -149,7 +155,7 @@ func (s *Server) GetLogout(c *gin.Context) {
 	session.Save()
 
 	c.String(http.StatusOK, "Successfully Logged out")
-	s.r.HandleContext(c)
+	return
 }
 
 func (s *Server) GetSong(c *gin.Context) {
@@ -168,6 +174,7 @@ func (s *Server) GetUpload(c *gin.Context) {
 	c.HTML(http.StatusOK, "upload.tmpl", gin.H{
 		"currentUser": session.Get("user"),
 	})
+	return
 }
 
 func (s *Server) PostUpload(c *gin.Context) {
@@ -179,7 +186,8 @@ func (s *Server) PostUpload(c *gin.Context) {
 	var user db.User
 	user, err := s.DB.GetUser(fmt.Sprintf("%s", session.Get("user")))
 	if err != nil {
-		log.Fatal(err)
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	fileHeader, _ := c.FormFile("file")
@@ -193,23 +201,26 @@ func (s *Server) PostUpload(c *gin.Context) {
 	// Upload the file to STORJ
 	o, err := s.bs.GetObjectStore(c, user.Username)
 	if err != nil {
-		log.Fatal(err)
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 	meta := objects.SerializableMeta{}
 	expTime := time.Time{}
 
 	_, err = o.Put(c, paths.New(fileHeader.Filename), file, meta, expTime)
 	if err != nil {
-		log.Fatal(err)
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	err = s.DB.AddSong(title, description, user.ID)
 	if err != nil {
-		log.Fatal(err)
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", title))
-	s.r.HandleContext(c)
+	return
 }
 
 func (s *Server) GetUser(c *gin.Context) {
@@ -219,7 +230,8 @@ func (s *Server) GetUser(c *gin.Context) {
 	var user db.User
 	user, err := s.DB.GetUser(fmt.Sprintf("%s", session.Get("user")))
 	if err != nil {
-		log.Fatal(err)
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	uploads := []string{}
@@ -228,4 +240,5 @@ func (s *Server) GetUser(c *gin.Context) {
 		"email":    user.Email,
 		"uploads":  uploads,
 	})
+	return
 }
