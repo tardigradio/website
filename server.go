@@ -189,12 +189,21 @@ func (s *Server) GetLogout(c *gin.Context) {
 }
 
 func (s *Server) GetSong(c *gin.Context) {
+	session := sessions.Default(c)
+
+	var currentUser string
+	user, err := s.getCurrentUserFromDbBy(session)
+	if err == nil {
+		currentUser = user.Username
+	}
+
 	username := c.Param("name")
 	song := strings.TrimPrefix(c.Param("song"), "/")
 
 	c.HTML(http.StatusOK, "song.tmpl", gin.H{
-		"username": username,
-		"song":     song,
+		"currentUser": currentUser,
+		"username":    username,
+		"song":        song,
 	})
 }
 
@@ -329,6 +338,7 @@ func (s *Server) PostUpload(c *gin.Context) {
 }
 
 func (s *Server) GetUser(c *gin.Context) {
+	session := sessions.Default(c)
 	username := c.Param("name")
 
 	var user db.User
@@ -355,10 +365,17 @@ func (s *Server) GetUser(c *gin.Context) {
 		songs = append(songs, &SongWithReadableCreated{Song: song, Created: humanize.Time(time.Unix(int64(song.Created), 0))})
 	}
 
+	var currentUserName string
+	currentUser, err := s.getCurrentUserFromDbBy(session)
+	if err == nil {
+		currentUserName = currentUser.Username
+	}
+
 	c.HTML(http.StatusOK, "user.tmpl", gin.H{
-		"username": username,
-		"email":    user.Email,
-		"uploads":  songs,
+		"currentUser": currentUserName,
+		"username":    username,
+		"email":       user.Email,
+		"uploads":     songs,
 	})
 	return
 }
