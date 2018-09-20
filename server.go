@@ -99,7 +99,6 @@ func (s *Server) GetRoot(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"title":       "Tardigrad.io",
 		"recent":      songs,
 		"currentUser": username,
 	})
@@ -191,7 +190,7 @@ func (s *Server) GetLogout(c *gin.Context) {
 
 func (s *Server) GetSong(c *gin.Context) {
 	username := c.Param("name")
-	song := c.Param("song")
+	song := strings.TrimPrefix(c.Param("song"), "/")
 
 	c.HTML(http.StatusOK, "song.tmpl", gin.H{
 		"username": username,
