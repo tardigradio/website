@@ -30,6 +30,7 @@ type Song struct {
 	Description string
 	Created     int
 	UserID      int
+	Filename    string
 }
 
 func Open(ctx context.Context, DBPath string) (*DB, error) {
@@ -62,7 +63,7 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 		return nil, err
 	}
 
-	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `songs` (`id` INTEGER PRIMARY KEY, `title` TEXT, `description` TEXT, `created` INTEGER, `user_id` INTEGER);")
+	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `songs` (`id` INTEGER PRIMARY KEY, `title` TEXT, `description` TEXT, `created` INTEGER, `user_id` INTEGER, `filename` TEXT);")
 	if err != nil {
 		return nil, err
 	}
@@ -95,11 +96,11 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 }
 
 // AddSong to the database
-func (db *DB) AddSong(title, description string, userID int) error {
+func (db *DB) AddSong(title, description, filename string, userID int) error {
 	defer db.locked()()
 
 	created := time.Now().Unix()
-	_, err := db.DB.Exec("INSERT INTO songs (title, description, created, user_id) VALUES (?, ?, ?, ?)", title, description, created, userID)
+	_, err := db.DB.Exec("INSERT INTO songs (title, description, created, user_id, filename) VALUES (?, ?, ?, ?)", title, description, created, userID, filename)
 	return err
 }
 
@@ -107,7 +108,7 @@ func (db *DB) GetSong(id int) (result Song, err error) {
 	defer db.locked()()
 
 	row := db.DB.QueryRow("SELECT * FROM songs WHERE id=? LIMIT 1;", id)
-	err = row.Scan(&result.ID, &result.Description, &result.Created, &result.UserID)
+	err = row.Scan(&result.ID, &result.Description, &result.Created, &result.UserID, &result.Filename)
 	return result, err
 }
 

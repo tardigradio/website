@@ -244,7 +244,7 @@ func (s *Server) PostUpload(c *gin.Context) {
 		return
 	}
 
-	err = s.DB.AddSong(title, description, user.ID)
+	err = s.DB.AddSong(title, description, fileHeader.Filename, user.ID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
