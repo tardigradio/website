@@ -6,10 +6,13 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -21,6 +24,7 @@ import (
 	"storj.io/storj/pkg/paths"
 	"storj.io/storj/pkg/storage/buckets"
 	"storj.io/storj/pkg/storage/objects"
+	"storj.io/storj/pkg/utils"
 	"storj.io/storj/storage"
 )
 
@@ -193,6 +197,77 @@ func (s *Server) GetSong(c *gin.Context) {
 		"username": username,
 		"song":     song,
 	})
+}
+
+func (s *Server) PostDownload(c *gin.Context) {
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+
+	username := c.Param("name")
+	title := strings.TrimPrefix(c.Param("song"), "/")
+
+	user, err := s.DB.GetUserByName(username)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	song, err := s.DB.GetSongByNameForUser(title, user.ID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	srcObj := song.Filename
+	destFile := filepath.Join(usr.HomeDir, "Downloads", srcObj)
+
+	o, err := s.bs.GetObjectStore(c, username)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	_, err = os.Stat(destFile)
+	if err == nil {
+		c.String(http.StatusOK, "Filename already exists in Downloads folder")
+		return
+	}
+
+	var f *os.File
+
+	f, err = os.Open(destFile)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer utils.LogClose(f)
+
+	rr, _, err := o.Get(c, paths.New(srcObj))
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	r, err := rr.Range(c, 0, rr.Size())
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer utils.LogClose(r)
+
+	_, err = io.Copy(f, r)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if destFile != "-" {
+		fmt.Printf("Downloaded %s to %s\n", srcObj, destFile)
+	}
+
+	return
 }
 
 func (s *Server) GetUpload(c *gin.Context) {

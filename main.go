@@ -67,6 +67,7 @@ func main() {
 
 	server.r.GET("/user/:name", server.GetUser)
 	server.r.GET("/user/:name/*song", server.GetSong)
+	server.r.POST("/user/:name/*song", server.PostDownload)
 
 	guest := server.r.Group("/guest")
 	guest.Use(GuestRequired())

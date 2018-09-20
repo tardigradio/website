@@ -100,7 +100,7 @@ func (db *DB) AddSong(title, description, filename string, userID int) error {
 	defer db.locked()()
 
 	created := time.Now().Unix()
-	_, err := db.DB.Exec("INSERT INTO songs (title, description, created, user_id, filename) VALUES (?, ?, ?, ?)", title, description, created, userID, filename)
+	_, err := db.DB.Exec("INSERT INTO songs (title, description, created, user_id, filename) VALUES (?, ?, ?, ?, ?)", title, description, created, userID, filename)
 	return err
 }
 
@@ -108,15 +108,15 @@ func (db *DB) GetSong(id int) (result Song, err error) {
 	defer db.locked()()
 
 	row := db.DB.QueryRow("SELECT * FROM songs WHERE id=? LIMIT 1;", id)
-	err = row.Scan(&result.ID, &result.Description, &result.Created, &result.UserID, &result.Filename)
+	err = row.Scan(&result.ID, &result.Title, &result.Description, &result.Created, &result.UserID, &result.Filename)
 	return result, err
 }
 
 func (db *DB) GetSongByNameForUser(title string, userID int) (result Song, err error) {
 	defer db.locked()()
 
-	row := db.DB.QueryRow("SELECT * FROM songs WHERE title=? & user_id=? LIMIT 1;", title, userID)
-	err = row.Scan(&result.ID, &result.Description, &result.Created, &result.UserID, &result.Filename)
+	row := db.DB.QueryRow("SELECT * FROM songs WHERE title=? AND user_id=?;", title, userID)
+	err = row.Scan(&result.ID, &result.Title, &result.Description, &result.Created, &result.UserID, &result.Filename)
 	return result, err
 }
 
@@ -192,7 +192,7 @@ func (db *DB) GetSongsForUser(userID int) (songs []Song, err error) {
 	for rows.Next() {
 		var song Song
 
-		if err := rows.Scan(&song.ID, &song.Title, &song.Description, &song.Created, &song.UserID); err != nil {
+		if err := rows.Scan(&song.ID, &song.Title, &song.Description, &song.Created, &song.UserID, &song.Filename); err != nil {
 			return nil, err
 		}
 
@@ -214,7 +214,7 @@ func (db *DB) GetRecentSongs() (songs []Song, err error) {
 	for rows.Next() {
 		var song Song
 
-		if err := rows.Scan(&song.ID, &song.Title, &song.Description, &song.Created, &song.UserID); err != nil {
+		if err := rows.Scan(&song.ID, &song.Title, &song.Description, &song.Created, &song.UserID, &song.Filename); err != nil {
 			return nil, err
 		}
 
