@@ -307,7 +307,14 @@ func getCurrentUserFrom(session sessions.Session) (int, error) {
 		return 0, errors.New("User is not logged in")
 	}
 
-	return sessionUser.(int), nil
+	switch sessionUser := interface{}(sessionUser).(type) {
+	case int:
+		return int(sessionUser), nil
+	case int64:
+		return int(int64(sessionUser)), nil
+	default:
+		return 0, errors.New("User is not logged in")
+	}
 }
 
 func getHashFrom(salt []byte) []byte {
