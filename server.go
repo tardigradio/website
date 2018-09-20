@@ -12,10 +12,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/tardigraudio/website/db"
+	"github.com/tardigradio/website/db"
+
 	"storj.io/storj/pkg/paths"
 	"storj.io/storj/pkg/storage/buckets"
 	"storj.io/storj/pkg/storage/objects"
@@ -38,7 +40,7 @@ func Initialize(ctx context.Context) *Server {
 		panic(err)
 	}
 
-	database, err := db.Open(ctx, filepath.Join(usr.HomeDir, "/.tardigraudio"))
+	database, err := db.Open(ctx, filepath.Join(usr.HomeDir, "/.tardigradio/db.sqlite"))
 	if err != nil {
 		panic(err)
 	}
@@ -61,8 +63,6 @@ func (s *Server) Close() error {
 
 func (s *Server) GetRoot(c *gin.Context) {
 	session := sessions.Default(c)
-	var popular []string
-	var recent []string
 
 	var username string
 	user, err := s.getCurrentUserFromDbBy(session)
@@ -70,10 +70,33 @@ func (s *Server) GetRoot(c *gin.Context) {
 		username = user.Username
 	}
 
+	recent, err := s.DB.GetRecentSongs()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	type SongWithArtist struct {
+		Song    db.Song
+		Artist  string
+		Created string
+	}
+
+	var songs []*SongWithArtist
+
+	for _, song := range recent {
+		user, err := s.DB.GetUserByID(song.UserID)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		songs = append(songs, &SongWithArtist{Song: song, Artist: user.Username, Created: humanize.Time(time.Unix(int64(song.Created), 0))})
+	}
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"title":       "Tardigraud.io",
-		"popular":     popular,
-		"recent":      recent,
+		"title":       "Tardigrad.io",
+		"recent":      songs,
 		"currentUser": username,
 	})
 	return
@@ -241,16 +264,27 @@ func (s *Server) GetUser(c *gin.Context) {
 		return
 	}
 
+	type SongWithReadableCreated struct {
+		Song    db.Song
+		Created string
+	}
+
 	uploads, err := s.DB.GetSongsForUser(user.ID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	log.Println(uploads)
+
+	var songs []*SongWithReadableCreated
+
+	for _, song := range uploads {
+		songs = append(songs, &SongWithReadableCreated{Song: song, Created: humanize.Time(time.Unix(int64(song.Created), 0))})
+	}
+
 	c.HTML(http.StatusOK, "user.tmpl", gin.H{
 		"username": username,
 		"email":    user.Email,
-		"uploads":  uploads,
+		"uploads":  songs,
 	})
 	return
 }

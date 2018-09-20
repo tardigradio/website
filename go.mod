@@ -1,7 +1,8 @@
-module github.com/tardigraudio/website
+module github.com/tardigradio/website
 
 require (
 	github.com/alecthomas/gometalinter v2.0.11+incompatible // indirect
+	github.com/dustin/go-humanize v0.0.0-20180421182945-02af3965c54e
 	github.com/fatih/gomodifytags v0.0.0-20180914191908-141225bf62b6 // indirect
 	github.com/gin-contrib/sessions v0.0.0-20180827025425-58cbcf30135c
 	github.com/gin-contrib/sse v0.0.0-20170109093832-22d885f9ecc7 // indirect

@@ -77,6 +77,11 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 		return nil, err
 	}
 
+	_, err = tx.Exec("CREATE INDEX IF NOT EXISTS idx_songs_user_id ON songs (user_id);")
+	if err != nil {
+		return nil, err
+	}
+
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
@@ -170,6 +175,28 @@ func (db *DB) GetSongsForUser(userID int) (songs []Song, err error) {
 	defer db.locked()()
 
 	rows, err := db.DB.Query("SELECT * FROM songs WHERE user_id=?;", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var song Song
+
+		if err := rows.Scan(&song.ID, &song.Title, &song.Description, &song.Created, &song.UserID); err != nil {
+			return nil, err
+		}
+
+		songs = append(songs, song)
+	}
+
+	return songs, err
+}
+
+func (db *DB) GetRecentSongs() (songs []Song, err error) {
+	defer db.locked()()
+
+	rows, err := db.DB.Query("SELECT * FROM songs ORDER BY created DESC LIMIT 100")
 	if err != nil {
 		return nil, err
 	}
