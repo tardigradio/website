@@ -226,7 +226,7 @@ func (s *Server) GetSong(c *gin.Context) {
 	})
 }
 
-func (s *Server) PostDownload(c *gin.Context) {
+func (s *Server) DownloadSong(c *gin.Context) {
 	username := c.Param("name")
 	title := strings.TrimPrefix(c.Param("song"), "/")
 

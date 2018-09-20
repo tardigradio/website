@@ -45,7 +45,7 @@
 				{{ .song.Title }}</span>
 				by <a href="/user/{{ .username }}">{{ .username }}</a><br />
 			{{ .song.Description }}<br /><br />
-      <audio controls><source src="{{ .presignedURL }}" type="audio/mp3"></audio>
+      <audio controls><source src="/download/{{ .username }}/{{ .song.Title }}" type="audio/mp3"></audio>
       <form action="" method="post">
         <button type="submit" class="btn btn-primary">Download</button>
       </form>
