@@ -191,17 +191,29 @@ func (s *Server) GetLogout(c *gin.Context) {
 func (s *Server) GetSong(c *gin.Context) {
 	session := sessions.Default(c)
 
-	var currentUser string
-	user, err := s.getCurrentUserFromDbBy(session)
+	var currentUserName string
+	currentUser, err := s.getCurrentUserFromDbBy(session)
 	if err == nil {
-		currentUser = user.Username
+		currentUserName = currentUser.Username
 	}
 
 	username := c.Param("name")
-	song := strings.TrimPrefix(c.Param("song"), "/")
+	title := strings.TrimPrefix(c.Param("song"), "/")
+
+	user, err := s.DB.GetUserByName(username)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Invalid username or password")
+		return
+	}
+
+	song, err := s.DB.GetSongByNameForUser(title, user.ID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	c.HTML(http.StatusOK, "song.tmpl", gin.H{
-		"currentUser": currentUser,
+		"currentUser": currentUserName,
 		"username":    username,
 		"song":        song,
 	})

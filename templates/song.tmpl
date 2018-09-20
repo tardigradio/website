@@ -41,8 +41,11 @@
 		  </div>
 		</nav>
     <div id="tracks">
-      <h2>{{ .song }}</h2> by <a href="/user/{{ .username }}">{{ .username }}</a><br /><br />
-      Play <=================><br />
+      <span style="font-size: 1.5em;font-weight: bold;">
+				{{ .song.Title }}</span>
+				by <a href="/user/{{ .username }}">{{ .username }}</a><br />
+			{{ .song.Description }}<br /><br />
+      <audio controls><source src="" type="audio/ogg"></audio>
       <form action="" method="post">
         <button type="submit" class="btn btn-primary">Download</button>
       </form>

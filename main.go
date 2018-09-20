@@ -54,7 +54,7 @@ func main() {
 	server.r.GET("/", server.GetRoot)
 
 	server.r.LoadHTMLGlob("templates/*")
-	server.r.Static("assets/css", "assets/css")
+	server.r.Static("/css", "assets/css")
 
 	private := server.r.Group("/active")
 	private.Use(AuthRequired())
