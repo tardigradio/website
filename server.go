@@ -6,10 +6,8 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
-	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -229,11 +227,6 @@ func (s *Server) GetSong(c *gin.Context) {
 }
 
 func (s *Server) PostDownload(c *gin.Context) {
-	usr, err := user.Current()
-	if err != nil {
-		panic(err)
-	}
-
 	username := c.Param("name")
 	title := strings.TrimPrefix(c.Param("song"), "/")
 
@@ -249,31 +242,13 @@ func (s *Server) PostDownload(c *gin.Context) {
 		return
 	}
 
-	srcObj := song.Filename
-	destFile := filepath.Join(usr.HomeDir, "Downloads", srcObj)
-
 	o, err := s.bs.GetObjectStore(c, username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	_, err = os.Stat(destFile)
-	if err == nil {
-		c.String(http.StatusOK, "Filename already exists in Downloads folder")
-		return
-	}
-
-	var f *os.File
-
-	f, err = os.Open(destFile)
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer utils.LogClose(f)
-
-	rr, _, err := o.Get(c, paths.New(srcObj))
+	rr, _, err := o.Get(c, paths.New(song.Filename))
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -286,16 +261,11 @@ func (s *Server) PostDownload(c *gin.Context) {
 	}
 	defer utils.LogClose(r)
 
-	_, err = io.Copy(f, r)
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+	extraHeaders := map[string]string{
+		"Content-Disposition": fmt.Sprintf(`attachment; filename="%s"`, song.Filename),
 	}
 
-	if destFile != "-" {
-		fmt.Printf("Downloaded %s to %s\n", srcObj, destFile)
-	}
-
+	c.DataFromReader(http.StatusOK, rr.Size(), "audio/*", r, extraHeaders)
 	return
 }
 
