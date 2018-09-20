@@ -112,6 +112,14 @@ func (db *DB) GetSong(id int) (result Song, err error) {
 	return result, err
 }
 
+func (db *DB) GetSongByNameForUser(title string, userID int) (result Song, err error) {
+	defer db.locked()()
+
+	row := db.DB.QueryRow("SELECT * FROM songs WHERE title=? & user_id=? LIMIT 1;", title, userID)
+	err = row.Scan(&result.ID, &result.Description, &result.Created, &result.UserID, &result.Filename)
+	return result, err
+}
+
 // DeleteSong from the database
 func (db *DB) DeleteSong(title string) error {
 	defer db.locked()()
