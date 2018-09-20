@@ -32,8 +32,9 @@
 
     <div id="tracks">
       <h2>Uploads</h2>
-      {{range .uploads}}
-        {{.}}<br />
+			{{ $username := .username}}
+			{{range $i, $song := .uploads}}
+        <a href="/user/{{$username}}/{{$song.Title}}">{{$song.Title}}</a><br />
       {{end}}
     </div>
   </body>

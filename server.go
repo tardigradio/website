@@ -246,6 +246,7 @@ func (s *Server) GetUser(c *gin.Context) {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
+	log.Println(uploads)
 	c.HTML(http.StatusOK, "user.tmpl", gin.H{
 		"username": username,
 		"email":    user.Email,
