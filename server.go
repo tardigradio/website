@@ -118,33 +118,33 @@ func (s *Server) PostRegister(c *gin.Context) {
 
 	hash := getHashFrom([]byte(password))
 
+	_, err := s.bs.Get(c, username)
+	if err == nil {
+		c.String(http.StatusInternalServerError, "Bucket already exists")
+		return
+	}
+	if !storage.ErrKeyNotFound.Has(err) {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	_, err = s.bs.Put(c, username)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf("Bucket %s created\n", username)
+
 	id, err := s.DB.AddUser(email, username, hash)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Failed to register")
 		return
-	} else {
-		_, err = s.bs.Get(c, username)
-		if err == nil {
-			c.String(http.StatusInternalServerError, "Bucket already exists")
-			return
-		}
-		if !storage.ErrKeyNotFound.Has(err) {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-		_, err = s.bs.Put(c, username)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		log.Printf("Bucket %s created\n", username)
-
-		session.Set("user", id)
-		session.Save()
-		c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
-		return
 	}
+
+	session.Set("user", id)
+	session.Save()
+	c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
+	return
 }
 
 func (s *Server) GetRegister(c *gin.Context) {
@@ -175,8 +175,14 @@ func (s *Server) GetSong(c *gin.Context) {
 func (s *Server) GetUpload(c *gin.Context) {
 	session := sessions.Default(c)
 
+	user, err := s.getCurrentUserFromDbBy(session)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.HTML(http.StatusOK, "upload.tmpl", gin.H{
-		"currentUser": session.Get("user"),
+		"currentUser": user.Username,
 	})
 	return
 }
