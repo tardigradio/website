@@ -212,10 +212,19 @@ func (s *Server) GetSong(c *gin.Context) {
 		return
 	}
 
+	presignedURL, err := generatePresignedURL(song.Filename, user.Username)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Println(presignedURL)
+
 	c.HTML(http.StatusOK, "song.tmpl", gin.H{
-		"currentUser": currentUserName,
-		"username":    username,
-		"song":        song,
+		"currentUser":  currentUserName,
+		"username":     username,
+		"song":         song,
+		"presignedURL": presignedURL,
 	})
 }
 
