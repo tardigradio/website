@@ -3,12 +3,6 @@ package main
 import (
 	"context"
 	"path/filepath"
-	"time"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 
 	"storj.io/storj/cmd/uplink/cmd"
 	"storj.io/storj/pkg/miniogw"
@@ -56,36 +50,4 @@ func getBucketStore(ctx context.Context, homeDir string) (buckets.Store, error) 
 	cfg := &cmd.Config{storjCfg}
 
 	return cfg.BucketStore(ctx)
-}
-
-func generatePresignedURL(key string, bucket string) (string, error) {
-	defaultResolver := endpoints.DefaultResolver()
-	s3CustResolverFn := func(service, region string, optFns ...func(*endpoints.Options)) (endpoints.ResolvedEndpoint, error) {
-		if service == "s3" {
-			return endpoints.ResolvedEndpoint{
-				URL:           "satellite.staging.storj.io:7777",
-				SigningRegion: "custom-signing-region",
-			}, nil
-		}
-
-		return defaultResolver.EndpointFor(service, region, optFns...)
-	}
-	sess := session.Must(session.NewSessionWithOptions(session.Options{
-		Config: aws.Config{
-			Region:           aws.String("us-west-2"),
-			EndpointResolver: endpoints.ResolverFunc(s3CustResolverFn),
-		},
-	}))
-
-	// Create the S3 service client with the shared session. This will
-	// automatically use the S3 custom endpoint configured in the custom
-	// endpoint resolver wrapping the default endpoint resolver.
-	s3Svc := s3.New(sess)
-	// Operation calls will be made to the custom endpoint.
-	req, _ := s3Svc.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
-	})
-
-	return req.Presign(15 * time.Minute)
 }
