@@ -1,8 +1,8 @@
-#Tardigrad.io
+# Tardigrad.io
 
 Website for musicians to share what they've Created
 
-##TODO
+## TODO
 * API Key should be environment variable
 * Redo all the Storj code
 * Fix assets
