@@ -3,6 +3,8 @@
 Website for musicians to share what they've Created
 
 ##TODO
+* API Key should be environment variable
+* Redo all the Storj code
 * Fix assets
 * Fix redirects
 * Users sign CC license when uploading
