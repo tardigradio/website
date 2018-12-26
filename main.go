@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// AuthRequired is a handler requires users to be logged in for access to specific routes
 func AuthRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
@@ -25,6 +26,7 @@ func AuthRequired() gin.HandlerFunc {
 	}
 }
 
+// GuestRequired is a handler requires users to be logged out for access to specific routes
 func GuestRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
@@ -42,20 +44,25 @@ func main() {
 	ctx := context.Background()
 	port := "8080"
 
+	// Determine port to run server at from command line arguments
 	if len(os.Args) > 1 {
 		if matched, _ := regexp.MatchString(`^\d{2,6}$`, os.Args[1]); matched == true {
 			port = os.Args[1]
 		}
 	}
 
+	// Initialize the Server Struct
 	server := Initialize(ctx)
-	defer server.Close()
+	defer server.Close() // Cleanly shutdown server
 
+	// Homepage
 	server.r.GET("/", server.GetRoot)
 
+	// Load Assets
 	server.r.LoadHTMLGlob("templates/*")
 	server.r.Static("/css", "assets/css")
 
+	// Routes that require users to be logged in
 	private := server.r.Group("/active")
 	private.Use(AuthRequired())
 	{
@@ -65,11 +72,13 @@ func main() {
 		private.POST("/delete", server.DeleteUser)
 	}
 
+	// Public routes for user pages
 	server.r.GET("/user/:name", server.GetUser)
 	server.r.GET("/user/:name/*song", server.GetSong)
 	server.r.POST("/user/:name/*song", server.DownloadSong)
 	server.r.GET("/download/:name/*song", server.DownloadSong)
 
+	// Routes that are only accessible if not logged in
 	guest := server.r.Group("/guest")
 	guest.Use(GuestRequired())
 	{

@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dustin/go-humanize"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -32,22 +32,32 @@ type Server struct {
 	bs buckets.Store
 }
 
+// Initialize the Tardigradio Server
 func Initialize(ctx context.Context) *Server {
 	router := gin.Default()
+
+	// Initialize the cookie store
 	store := cookie.NewStore([]byte("secret"))
 	router.Use(sessions.Sessions("mysession", store))
 
+	// Get current user account for determining Server Home Directory
 	usr, err := user.Current()
 	if err != nil {
 		panic(err)
 	}
 
-	database, err := db.Open(ctx, filepath.Join(usr.HomeDir, "/.tardigradio/db.sqlite"))
+	// Get Storj Config
+	bs, err := getBucketStore(ctx, usr.HomeDir)
 	if err != nil {
 		panic(err)
 	}
 
-	bs, err := getBucketStore(ctx, usr.HomeDir)
+	// TODO: Derive ID from bs config
+	satelliteid := "satelliteid"
+
+	// Open Database for storing tardigradio user data and upload meta
+	dbpath := filepath.Join(usr.HomeDir, fmt.Sprintf("/.tardigradio/%s/db.sqlite", satelliteid))
+	database, err := db.Open(ctx, dbpath)
 	if err != nil {
 		panic(err)
 	}
@@ -55,23 +65,28 @@ func Initialize(ctx context.Context) *Server {
 	return &Server{DB: database, r: router, bs: bs}
 }
 
+// Run the Server using the gin Engine
 func (s *Server) Run(address string) {
 	s.r.Run(address)
 }
 
+// Close will cleanly shutdown the Server
 func (s *Server) Close() error {
 	return s.DB.Close()
 }
 
+// GetRoot will Get the "/" endpoint
 func (s *Server) GetRoot(c *gin.Context) {
 	session := sessions.Default(c)
 
+	// Determine the current user
 	var username string
 	user, err := s.getCurrentUserFromDbBy(session)
 	if err == nil {
 		username = user.Username
 	}
 
+	// Get all songs uploaded in the last 24 hours
 	recent, err := s.DB.GetRecentSongs()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -86,6 +101,7 @@ func (s *Server) GetRoot(c *gin.Context) {
 
 	var songs []*SongWithArtist
 
+	// Create array of Recent Songs+Artist
 	for _, song := range recent {
 		user, err := s.DB.GetUserByID(song.UserID)
 		if err != nil {
