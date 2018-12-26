@@ -1,0 +1,6 @@
+#!bin/bash
+
+export STORJAPIKEY=
+export STORJENCRYPTIONKEY=
+export STORJACCESSKEY=
+export STORJSECRETKEY=
