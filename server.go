@@ -255,7 +255,11 @@ func (s *Server) PostUpload(c *gin.Context) {
 		return
 	}
 
-	c.String(http.StatusOK, fmt.Sprintf("'%s' uploaded!", title))
+	c.HTML(http.StatusOK, "song.tmpl", gin.H{
+		"currentUser": user.Username,
+		"username":    user.Username,
+		"song":        title,
+	})
 	return
 }
 
@@ -331,7 +335,9 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	session.Delete("user")
 	session.Save()
 
-	c.String(http.StatusOK, "Successfully deleted your account")
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"Success": "Successfully logged out",
+	})
 	return
 }
 
@@ -404,20 +410,27 @@ func (s *Server) PostLogin(c *gin.Context) {
 	// Look up User in database
 	user, err := s.DB.GetUserByName(username)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Invalid username or password")
+		c.HTML(http.StatusUnauthorized, "login.tmpl", gin.H{
+			"Error": "Invalid username or password",
+		})
 		return
 	}
 
 	// Verify user password
 	if !s.Validated(user.ID, hash) {
-		c.String(http.StatusInternalServerError, "Invalid username or password")
+		c.HTML(http.StatusUnauthorized, "login.tmpl", gin.H{
+			"Error": "Invalid username or password",
+		})
 		return
 	}
 
 	session.Set("user", user.ID)
 	session.Save()
 
-	c.String(http.StatusOK, fmt.Sprintf("'%s' logged in!", username))
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"Success":     "Successfully logged in",
+		"currentUser": username,
+	})
 	return
 }
 
@@ -439,19 +452,25 @@ func (s *Server) PostRegister(c *gin.Context) {
 	// Storj: Check if Bucket already exists
 	_, err := s.bs.Get(c, username)
 	if err == nil {
-		c.String(http.StatusInternalServerError, "Bucket already exists")
+		c.HTML(http.StatusInternalServerError, "register.tmpl", gin.H{
+			"Error": "Failed to register user: Bucket already exists",
+		})
 		return
 	}
 
 	if !storage.ErrKeyNotFound.Has(err) {
-		c.String(http.StatusInternalServerError, err.Error())
+		c.HTML(http.StatusInternalServerError, "register.tmpl", gin.H{
+			"Error": fmt.Sprintf("Failed to register user: %s", err.Error()),
+		})
 		return
 	}
 
 	// Storj: Create bucket tied to username
 	_, err = s.bs.Put(c, username)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		c.HTML(http.StatusInternalServerError, "register.tmpl", gin.H{
+			"Error": fmt.Sprintf("Failed to register user: %s", err.Error()),
+		})
 		return
 	}
 
@@ -460,13 +479,18 @@ func (s *Server) PostRegister(c *gin.Context) {
 	// Add user to database
 	id, err := s.DB.AddUser(email, username, hash)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Failed to register")
+		c.HTML(http.StatusInternalServerError, "register.tmpl", gin.H{
+			"Error": fmt.Sprintf("Failed to register user: %s", err.Error()),
+		})
 		return
 	}
 
 	session.Set("user", id)
 	session.Save()
-	c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"Success":     "Successfully registered",
+		"currentUser": username,
+	})
 	return
 }
 
@@ -482,6 +506,8 @@ func (s *Server) GetLogout(c *gin.Context) {
 	session.Delete("user")
 	session.Save()
 
-	c.String(http.StatusOK, "Successfully Logged out")
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"Success": "Successfully logged out",
+	})
 	return
 }

@@ -23,11 +23,18 @@
         <li class="nav-item">
           <a class="nav-link" href="/guest/register">register</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="#">login <span class="sr-only">(current)</span></a>
+        </li>
       </ul>
     </div>
   </nav>
 
-
+    {{if .Error}}
+    <div class="alert alert-danger" role="alert">
+      {{.Error}}
+    </div>
+    {{end}}
 
     <h1>Login</h1>
     <form action="/guest/login" method="post" enctype="multipart/form-data">
@@ -40,6 +47,7 @@
         <input type="password" name="password" class="form-control" id="password">
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
+
       <br /><br />
       If you don't have an account please register <a href="/guest/register">here</a>
     </form>

@@ -40,6 +40,18 @@
 		  </div>
 		</nav>
 
+		{{if .Error}}
+      <div class="alert alert-danger" role="alert">
+        {{.Error}}
+      </div>
+    {{end}}
+
+		{{if .Success}}
+      <div class="alert alert-success" role="alert">
+        {{.Success}}
+      </div>
+    {{end}}
+
 		<div id="recent">
       <h2>Recent Uploads</h2><br />
 			<table class="table">
