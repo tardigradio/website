@@ -19,7 +19,7 @@ func initConfig(homeDir string) *cmd.Config {
 	minioCfg := miniogw.MinioConfig{
 		AccessKey: "3ee4E2vqy3myfKdPnuPKTQQavtqx",
 		SecretKey: "3H1BL6sKtiRCrs9VxCbw9xboYsXp",
-		Dir:  filepath.Join(homeDir, ".storj/uplink/miniogw"),
+		Dir:       filepath.Join(homeDir, ".storj/uplink/miniogw"),
 	}
 
 	clientCfg := miniogw.ClientConfig{
@@ -40,10 +40,10 @@ func initConfig(homeDir string) *cmd.Config {
 	}
 
 	eCfg := miniogw.EncryptionConfig{
-		Key: "insertEncKeyHere",
+		Key:       "insertEncKeyHere",
 		BlockSize: 1024,
-		DataType: 1,
-		PathType: 1,
+		DataType:  1,
+		PathType:  1,
 	}
 
 	storjCfg := miniogw.Config{
