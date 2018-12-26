@@ -12,18 +12,22 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+// DB
 type DB struct {
 	DB *sql.DB
 	mu sync.Mutex
 }
 
+// User struct matches row on `users` table
 type User struct {
 	ID       int
 	Created  int
 	Email    string
 	Username string
+	Hash     []byte
 }
 
+// Song struct matches row on `songs` table
 type Song struct {
 	ID          int
 	Title       string
@@ -33,6 +37,17 @@ type Song struct {
 	Filename    string
 }
 
+// Comment struct matches row on `comments` table
+type Comment struct {
+	ID        int
+	Text      string
+	Created   int
+	UserID    int
+	CommentID int
+	SongID    int
+}
+
+// Open the database by path and setup tables
 func Open(ctx context.Context, DBPath string) (*DB, error) {
 	if err := os.MkdirAll(filepath.Dir(DBPath), 0700); err != nil {
 		return nil, err
@@ -104,6 +119,7 @@ func (db *DB) AddSong(title, description, filename string, userID int) error {
 	return err
 }
 
+// GetSong returns a song by id
 func (db *DB) GetSong(id int) (result Song, err error) {
 	defer db.locked()()
 
@@ -112,6 +128,7 @@ func (db *DB) GetSong(id int) (result Song, err error) {
 	return result, err
 }
 
+// GetSongByNameForUser returns a song by title + user's id
 func (db *DB) GetSongByNameForUser(title string, userID int) (result Song, err error) {
 	defer db.locked()()
 
@@ -162,7 +179,7 @@ func (db *DB) DeleteUser(userID int) error {
 	return err
 }
 
-// GetUser checks if user exists in the database
+// GetUserByID checks if user exists in the database
 func (db *DB) GetUserByID(userID int) (result User, err error) {
 	defer db.locked()()
 
@@ -171,7 +188,7 @@ func (db *DB) GetUserByID(userID int) (result User, err error) {
 	return result, err
 }
 
-// GetUser checks if user exists in the database
+// GetUserByName checks if user exists in the database
 func (db *DB) GetUserByName(user string) (result User, err error) {
 	defer db.locked()()
 
@@ -180,6 +197,7 @@ func (db *DB) GetUserByName(user string) (result User, err error) {
 	return result, err
 }
 
+// GetSongsForUser returns all songs for a specific user
 func (db *DB) GetSongsForUser(userID int) (songs []Song, err error) {
 	defer db.locked()()
 
@@ -202,6 +220,7 @@ func (db *DB) GetSongsForUser(userID int) (songs []Song, err error) {
 	return songs, err
 }
 
+// GetRecentSongs returns last 100 songs created
 func (db *DB) GetRecentSongs() (songs []Song, err error) {
 	defer db.locked()()
 
@@ -224,6 +243,7 @@ func (db *DB) GetRecentSongs() (songs []Song, err error) {
 	return songs, err
 }
 
+// GetUserHash returns hash for a specific user for validation
 func (db *DB) GetUserHash(userID int) (hash []byte, err error) {
 	defer db.locked()()
 
@@ -237,6 +257,7 @@ func (db *DB) Close() error {
 	return db.DB.Close()
 }
 
+// lock the database mutex
 func (db *DB) locked() func() {
 	db.mu.Lock()
 	return db.mu.Unlock
