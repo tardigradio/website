@@ -6,6 +6,7 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os/user"
@@ -19,17 +20,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/tardigradio/website/db"
 
-	"storj.io/storj/pkg/paths"
-	"storj.io/storj/pkg/storage/buckets"
-	"storj.io/storj/pkg/storage/objects"
+	"storj.io/storj/pkg/storage/streams"
+	"storj.io/storj/pkg/storj"
+	"storj.io/storj/pkg/stream"
 	"storj.io/storj/pkg/utils"
 	"storj.io/storj/storage"
 )
 
+// Server holds important info for accessing storj API and Tardigradio database
 type Server struct {
-	DB *db.DB
-	r  *gin.Engine
-	bs buckets.Store
+	DB       *db.DB
+	r        *gin.Engine
+	metainfo storj.Metainfo
+	ss       streams.Store
+	rs       storj.RedundancyScheme
+	es       storj.EncryptionScheme
 }
 
 // Initialize the Tardigradio Server
@@ -47,7 +52,9 @@ func Initialize(ctx context.Context) *Server {
 	}
 
 	// Get Storj Config
-	bs, err := getBucketStore(ctx, usr.HomeDir)
+	cfg := initConfig(usr.HomeDir)
+
+	meta, ss, err := cfg.Metainfo(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -62,7 +69,7 @@ func Initialize(ctx context.Context) *Server {
 		panic(err)
 	}
 
-	return &Server{DB: database, r: router, bs: bs}
+	return &Server{DB: database, r: router, metainfo: meta, ss: ss, rs: cfg.GetRedundancyScheme(), es: cfg.GetEncryptionScheme()}
 }
 
 // Run the Server using the gin Engine
@@ -215,6 +222,7 @@ func (s *Server) GetUpload(c *gin.Context) {
 	return
 }
 
+// PostUpload uploads a song to the storj network and saves metainfo to Tardigrade database
 func (s *Server) PostUpload(c *gin.Context) {
 	session := sessions.Default(c)
 	title := c.PostForm("songTitle")
@@ -234,16 +242,27 @@ func (s *Server) PostUpload(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// Storj: Upload the file
-	o, err := s.bs.GetObjectStore(c, user.Username)
+	createInfo := storj.CreateObject{
+		RedundancyScheme: s.rs,
+		EncryptionScheme: s.es,
+	}
+
+	obj, err := s.metainfo.CreateObject(c, user.Username, fileHeader.Filename, &createInfo)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+	}
+
+	reader := io.Reader(file)
+
+	mutableStream, err := obj.CreateStream(c)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
-	meta := objects.SerializableMeta{}
-	expTime := time.Time{}
 
-	_, err = o.Put(c, paths.New(fileHeader.Filename), file, meta, expTime)
+	upload := stream.NewUpload(c, mutableStream, s.ss)
+
+	_, err = io.Copy(upload, reader)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
