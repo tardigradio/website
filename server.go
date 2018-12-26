@@ -75,7 +75,7 @@ func (s *Server) Close() error {
 	return s.DB.Close()
 }
 
-// GetRoot will Get the "/" endpoint
+// GetRoot will Get Request the "/" endpoint
 func (s *Server) GetRoot(c *gin.Context) {
 	session := sessions.Default(c)
 
@@ -119,89 +119,7 @@ func (s *Server) GetRoot(c *gin.Context) {
 	return
 }
 
-func (s *Server) PostLogin(c *gin.Context) {
-	session := sessions.Default(c)
-
-	username := c.PostForm("username")
-	password := c.PostForm("password")
-
-	hash := getHashFrom([]byte(password))
-
-	user, err := s.DB.GetUserByName(username)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Invalid username or password")
-		return
-	}
-
-	if !s.Validated(user.ID, hash) {
-		c.String(http.StatusInternalServerError, "Invalid username or password")
-		return
-	}
-
-	session.Set("user", user.ID)
-	session.Save()
-
-	c.String(http.StatusOK, fmt.Sprintf("'%s' logged in!", username))
-	return
-}
-
-func (s *Server) GetLogin(c *gin.Context) {
-	c.HTML(http.StatusOK, "login.tmpl", gin.H{})
-	return
-}
-
-func (s *Server) PostRegister(c *gin.Context) {
-	session := sessions.Default(c)
-	email := c.PostForm("email")
-	username := c.PostForm("username")
-	password := c.PostForm("password")
-
-	hash := getHashFrom([]byte(password))
-
-	_, err := s.bs.Get(c, username)
-	if err == nil {
-		c.String(http.StatusInternalServerError, "Bucket already exists")
-		return
-	}
-	if !storage.ErrKeyNotFound.Has(err) {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	_, err = s.bs.Put(c, username)
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	log.Printf("Bucket %s created\n", username)
-
-	id, err := s.DB.AddUser(email, username, hash)
-	if err != nil {
-		c.String(http.StatusInternalServerError, "Failed to register")
-		return
-	}
-
-	session.Set("user", id)
-	session.Save()
-	c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
-	return
-}
-
-func (s *Server) GetRegister(c *gin.Context) {
-	c.HTML(http.StatusOK, "register.tmpl", gin.H{})
-	return
-}
-
-func (s *Server) GetLogout(c *gin.Context) {
-	session := sessions.Default(c)
-
-	session.Delete("user")
-	session.Save()
-
-	c.String(http.StatusOK, "Successfully Logged out")
-	return
-}
-
+// GetSong will Get the "/user/:name/*song" endpoint
 func (s *Server) GetSong(c *gin.Context) {
 	session := sessions.Default(c)
 
@@ -233,10 +151,13 @@ func (s *Server) GetSong(c *gin.Context) {
 	})
 }
 
+// DownloadSong will Post the "/user/:name/*song" endpoint
+// This endpoint downloads the song
 func (s *Server) DownloadSong(c *gin.Context) {
 	username := c.Param("name")
 	title := strings.TrimPrefix(c.Param("song"), "/")
 
+	// Look up song artist's ID by username
 	user, err := s.DB.GetUserByName(username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -249,18 +170,21 @@ func (s *Server) DownloadSong(c *gin.Context) {
 		return
 	}
 
+	// Storj: Get access to user bucket
 	o, err := s.bs.GetObjectStore(c, username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Storj: Get ranger for downloading song from bucket
 	rr, _, err := o.Get(c, paths.New(song.Filename))
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
+	// Storj: Range Song
 	r, err := rr.Range(c, 0, rr.Size())
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -310,7 +234,7 @@ func (s *Server) PostUpload(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// Upload the file to STORJ
+	// Storj: Upload the file
 	o, err := s.bs.GetObjectStore(c, user.Username)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -425,6 +349,14 @@ func (s *Server) Validated(userID int, hash []byte) bool {
 	return true
 }
 
+// getHashFrom will sha512 hash a byte slice
+func getHashFrom(salt []byte) []byte {
+	h := sha512.New()
+	h.Write(salt)
+	return h.Sum(nil)
+}
+
+// getCurrentUserFrom will Get Current User ID from cookies session
 func getCurrentUserFrom(session sessions.Session) (int, error) {
 	sessionUser := session.Get("user")
 	if sessionUser == nil {
@@ -441,24 +373,115 @@ func getCurrentUserFrom(session sessions.Session) (int, error) {
 	}
 }
 
-func getHashFrom(salt []byte) []byte {
-	h := sha512.New()
-	h.Write(salt)
-	return h.Sum(nil)
-}
-
+// getCurrentUserFromDbBy will get a User object from the database by the current session user
 func (s *Server) getCurrentUserFromDbBy(session sessions.Session) (db.User, error) {
 	var user db.User
 
+	// Get User ID from Session
 	userID, err := getCurrentUserFrom(session)
 	if err != nil {
 		return user, err
 	}
 
+	// Get User meta from database by user id
 	user, err = s.DB.GetUserByID(userID)
 	if err != nil {
 		return user, err
 	}
 
 	return user, nil
+}
+
+// PostLogin is a Post Request to the /guest/login enpoint
+func (s *Server) PostLogin(c *gin.Context) {
+	session := sessions.Default(c)
+
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+
+	hash := getHashFrom([]byte(password))
+
+	// Look up User in database
+	user, err := s.DB.GetUserByName(username)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Invalid username or password")
+		return
+	}
+
+	// Verify user password
+	if !s.Validated(user.ID, hash) {
+		c.String(http.StatusInternalServerError, "Invalid username or password")
+		return
+	}
+
+	session.Set("user", user.ID)
+	session.Save()
+
+	c.String(http.StatusOK, fmt.Sprintf("'%s' logged in!", username))
+	return
+}
+
+// GetLogin is a Get Request to the /guest/login enpoint
+func (s *Server) GetLogin(c *gin.Context) {
+	c.HTML(http.StatusOK, "login.tmpl", gin.H{})
+	return
+}
+
+// PostRegister is a Post Request to the /guest/register enpoint
+func (s *Server) PostRegister(c *gin.Context) {
+	session := sessions.Default(c)
+	email := c.PostForm("email")
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+
+	hash := getHashFrom([]byte(password))
+
+	// Storj: Check if Bucket already exists
+	_, err := s.bs.Get(c, username)
+	if err == nil {
+		c.String(http.StatusInternalServerError, "Bucket already exists")
+		return
+	}
+
+	if !storage.ErrKeyNotFound.Has(err) {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Storj: Create bucket tied to username
+	_, err = s.bs.Put(c, username)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	log.Printf("Bucket %s created\n", username)
+
+	// Add user to database
+	id, err := s.DB.AddUser(email, username, hash)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Failed to register")
+		return
+	}
+
+	session.Set("user", id)
+	session.Save()
+	c.String(http.StatusOK, fmt.Sprintf("'%s' registered!", username))
+	return
+}
+
+// GetRegister is a Get Request to the /guest/register enpoint
+func (s *Server) GetRegister(c *gin.Context) {
+	c.HTML(http.StatusOK, "register.tmpl", gin.H{})
+	return
+}
+
+func (s *Server) GetLogout(c *gin.Context) {
+	session := sessions.Default(c)
+
+	session.Delete("user")
+	session.Save()
+
+	c.String(http.StatusOK, "Successfully Logged out")
+	return
 }
