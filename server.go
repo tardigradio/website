@@ -177,36 +177,24 @@ func (s *Server) DownloadSong(c *gin.Context) {
 		return
 	}
 
-	// Storj: Get access to user bucket
-	o, err := s.bs.GetObjectStore(c, username)
+	readOnlyStream, err := s.metainfo.GetObjectStream(c, username, song.Filename)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	// Storj: Get ranger for downloading song from bucket
-	rr, _, err := o.Get(c, paths.New(song.Filename))
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	// Storj: Range Song
-	r, err := rr.Range(c, 0, rr.Size())
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer utils.LogClose(r)
+	download := stream.NewDownload(c, readOnlyStream, s.ss)
+	defer utils.LogClose(download)
 
 	extraHeaders := map[string]string{
 		"Content-Disposition": fmt.Sprintf(`attachment; filename="%s"`, song.Filename),
 	}
 
-	c.DataFromReader(http.StatusOK, rr.Size(), "audio/*", r, extraHeaders)
+	c.DataFromReader(http.StatusOK, readOnlyStream.Info().Size, "audio/*", download, extraHeaders)
 	return
 }
 
+// GetUpload gets the upload page
 func (s *Server) GetUpload(c *gin.Context) {
 	session := sessions.Default(c)
 
@@ -282,6 +270,7 @@ func (s *Server) PostUpload(c *gin.Context) {
 	return
 }
 
+// GetUser gets the user account page
 func (s *Server) GetUser(c *gin.Context) {
 	session := sessions.Default(c)
 	username := c.Param("name")
@@ -325,6 +314,7 @@ func (s *Server) GetUser(c *gin.Context) {
 	return
 }
 
+// DeleteUser deletes a user
 func (s *Server) DeleteUser(c *gin.Context) {
 	session := sessions.Default(c)
 
@@ -360,7 +350,7 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	return
 }
 
-// Validate a user
+// Validated validates a user
 func (s *Server) Validated(userID int, hash []byte) bool {
 	userhash, err := s.DB.GetUserHash(userID)
 	if err != nil {
@@ -519,6 +509,7 @@ func (s *Server) GetRegister(c *gin.Context) {
 	return
 }
 
+// GetLogout gets the logout page
 func (s *Server) GetLogout(c *gin.Context) {
 	session := sessions.Default(c)
 
