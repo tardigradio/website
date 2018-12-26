@@ -459,7 +459,7 @@ func (s *Server) PostRegister(c *gin.Context) {
 	hash := getHashFrom([]byte(password))
 
 	// Storj: Check if Bucket already exists
-	_, err := s.bs.Get(c, username)
+	_, err := s.metainfo.GetBucket(c, username)
 	if err == nil {
 		c.HTML(http.StatusInternalServerError, "register.tmpl", gin.H{
 			"Error": "Failed to register user: Bucket already exists",
@@ -475,7 +475,7 @@ func (s *Server) PostRegister(c *gin.Context) {
 	}
 
 	// Storj: Create bucket tied to username
-	_, err = s.bs.Put(c, username)
+	_, err = s.metainfo.CreateBucket(c, username, &storj.Bucket{PathCipher: storj.Cipher(1)})
 	if err != nil {
 		c.HTML(http.StatusInternalServerError, "register.tmpl", gin.H{
 			"Error": fmt.Sprintf("Failed to register user: %s", err.Error()),
