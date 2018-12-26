@@ -1,16 +1,15 @@
 package main
 
 import (
-	"context"
 	"path/filepath"
 
 	"storj.io/storj/cmd/uplink/cmd"
 	"storj.io/storj/pkg/miniogw"
 	"storj.io/storj/pkg/provider"
-	"storj.io/storj/pkg/storage/buckets"
 )
 
-func getBucketStore(ctx context.Context, homeDir string) (buckets.Store, error) {
+func initConfig(homeDir string) *cmd.Config {
+	//TODO: these filepaths are deprecated
 	identityCfg := provider.IdentityConfig{
 		CertPath: filepath.Join(homeDir, ".storj/uplink/identity.cert"),
 		KeyPath:  filepath.Join(homeDir, ".storj/uplink/identity.key"),
@@ -47,7 +46,5 @@ func getBucketStore(ctx context.Context, homeDir string) (buckets.Store, error) 
 		rsCfg,
 	}
 
-	cfg := &cmd.Config{storjCfg}
-
-	return cfg.BucketStore(ctx)
+	return &cmd.Config{storjCfg}
 }
