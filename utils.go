@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"path/filepath"
 
 	"storj.io/storj/cmd/uplink/cmd"
@@ -17,15 +18,15 @@ func initConfig(homeDir string) *cmd.Config {
 	}
 
 	minioCfg := miniogw.MinioConfig{
-		AccessKey: "3ee4E2vqy3myfKdPnuPKTQQavtqx",
-		SecretKey: "3H1BL6sKtiRCrs9VxCbw9xboYsXp",
+		AccessKey: os.Getenv("STORJACCESSKEY"),
+		SecretKey: os.Getenv("STORJSECRETKEY"),
 		Dir:       filepath.Join(homeDir, ".storj/uplink/miniogw"),
 	}
 
 	clientCfg := miniogw.ClientConfig{
-		OverlayAddr:   "satellite.staging.storj.io:7777",
-		PointerDBAddr: "satellite.staging.storj.io:7777",
-		APIKey:        "CribRetrievableEyebrows",
+		OverlayAddr:   "127.0.0.1:7778",
+		PointerDBAddr: "127.0.0.1:7778",
+		APIKey:        os.Getenv("STORJAPIKEY"),
 		MaxInlineSize: 4096,
 		SegmentSize:   64000000,
 	}
@@ -40,7 +41,7 @@ func initConfig(homeDir string) *cmd.Config {
 	}
 
 	eCfg := miniogw.EncryptionConfig{
-		Key:       "insertEncKeyHere",
+		Key:       os.Getenv("STORJENCRYPTIONKEY"),
 		BlockSize: 1024,
 		DataType:  1,
 		PathType:  1,
