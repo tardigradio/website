@@ -380,8 +380,9 @@ func (s *Server) DeleteSong(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"recent":  songs,
-		"Success": "Successfully deleted song",
+		"recent":      songs,
+		"currentUser": user.Username,
+		"Success":     "Successfully deleted song",
 	})
 	return
 }
