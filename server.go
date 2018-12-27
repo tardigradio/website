@@ -58,6 +58,11 @@ func Initialize(ctx context.Context) *Server {
 		panic(err)
 	}
 
+	err = writeCert(ctx, usr.HomeDir)
+	if err != nil {
+		panic(err)
+	}
+
 	// Get Storj Config
 	cfg := initConfig(usr.HomeDir)
 

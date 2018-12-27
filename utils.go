@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 
@@ -9,18 +10,31 @@ import (
 	"storj.io/storj/pkg/provider"
 )
 
-func initConfig(homeDir string) cmd.Config {
+func writeCert(ctx context.Context, homeDir string) error {
+	cfg := provider.CASetupConfig{
+		CertPath:    filepath.Join(homeDir, ".tardigradio/identity.cert"),
+		KeyPath:     filepath.Join(homeDir, ".tardigradio/identity.key"),
+		Difficulty:  15,
+		Timeout:     "5m",
+		Overwrite:   false,
+		Concurrency: 4,
+	}
+
+	_, err := cfg.Create(ctx)
+	return err
+}
+
+func initConfig(homeDir string) *cmd.Config {
 	//TODO: look at ServerConfig on provider.IdentityConfig. Do we need to set this?
 	//TODO: these filepaths are deprecated
 	identityCfg := provider.IdentityConfig{
-		CertPath: filepath.Join(homeDir, ".storj/uplink/identity.cert"),
-		KeyPath:  filepath.Join(homeDir, ".storj/uplink/identity.key"),
+		CertPath: filepath.Join(homeDir, ".tardigradio/identity.cert"),
+		KeyPath:  filepath.Join(homeDir, ".tardigradio/identity.key"),
 	}
 
 	minioCfg := miniogw.MinioConfig{
 		AccessKey: os.Getenv("STORJACCESSKEY"),
 		SecretKey: os.Getenv("STORJSECRETKEY"),
-		Dir:       filepath.Join(homeDir, ".storj/uplink/miniogw"),
 	}
 
 	clientCfg := miniogw.ClientConfig{
