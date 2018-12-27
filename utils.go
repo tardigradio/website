@@ -24,7 +24,7 @@ func writeCert(ctx context.Context, homeDir string) error {
 	return err
 }
 
-func initConfig(homeDir string) *cmd.Config {
+func initConfig(homeDir string) cmd.Config {
 	//TODO: look at ServerConfig on provider.IdentityConfig. Do we need to set this?
 	//TODO: these filepaths are deprecated
 	identityCfg := provider.IdentityConfig{
