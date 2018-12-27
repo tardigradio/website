@@ -189,6 +189,7 @@ func (s *Server) DownloadSong(c *gin.Context) {
 
 	readOnlyStream, err := s.metainfo.GetObjectStream(c, username, song.Filename)
 	if err != nil {
+		fmt.Println("GetObjectStream", err.Error())
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -245,6 +246,7 @@ func (s *Server) PostUpload(c *gin.Context) {
 		EncryptionScheme: s.es,
 	}
 
+	fmt.Println("PATH:", fileHeader.Filename)
 	obj, err := s.metainfo.CreateObject(c, user.Username, fileHeader.Filename, &createInfo)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -262,6 +264,11 @@ func (s *Server) PostUpload(c *gin.Context) {
 
 	_, err = io.Copy(upload, reader)
 	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if err := upload.Close(); err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}

@@ -9,7 +9,7 @@ import (
 	"storj.io/storj/pkg/provider"
 )
 
-func initConfig(homeDir string) *cmd.Config {
+func initConfig(homeDir string) cmd.Config {
 	//TODO: look at ServerConfig on provider.IdentityConfig. Do we need to set this?
 	//TODO: these filepaths are deprecated
 	identityCfg := provider.IdentityConfig{
@@ -34,10 +34,10 @@ func initConfig(homeDir string) *cmd.Config {
 	rsCfg := miniogw.RSConfig{
 		MaxBufferMem:     0x400000,
 		ErasureShareSize: 1024,
-		MinThreshold:     2,
-		RepairThreshold:  3,
-		SuccessThreshold: 4,
-		MaxThreshold:     5,
+		MinThreshold:     4,
+		RepairThreshold:  6,
+		SuccessThreshold: 8,
+		MaxThreshold:     10,
 	}
 
 	eCfg := miniogw.EncryptionConfig{
@@ -55,5 +55,5 @@ func initConfig(homeDir string) *cmd.Config {
 		eCfg,
 	}
 
-	return &cmd.Config{storjCfg}
+	return cmd.Config{storjCfg}
 }
