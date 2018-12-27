@@ -11,7 +11,7 @@ import (
 )
 
 func writeCert(ctx context.Context, homeDir string) error {
-	cfg := provider.CASetupConfig{
+	ca := provider.CASetupConfig{
 		CertPath:    filepath.Join(homeDir, ".tardigradio/identity.cert"),
 		KeyPath:     filepath.Join(homeDir, ".tardigradio/identity.key"),
 		Difficulty:  15,
@@ -19,9 +19,14 @@ func writeCert(ctx context.Context, homeDir string) error {
 		Overwrite:   false,
 		Concurrency: 4,
 	}
-
-	_, err := cfg.Create(ctx)
-	return err
+	i := provider.IdentitySetupConfig{
+		CertPath:    filepath.Join(homeDir, ".tardigradio/identity.cert"),
+		KeyPath:     filepath.Join(homeDir, ".tardigradio/identity.key"),
+		Overwrite:   false,
+		Version:     "0",
+	}
+	
+	return provider.SetupIdentity(ctx, ca, i)
 }
 
 func initConfig(homeDir string) cmd.Config {
