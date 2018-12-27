@@ -337,6 +337,50 @@ func (s *Server) GetUser(c *gin.Context) {
 	return
 }
 
+// DeleteSong will delete a song by the name
+func (s *Server) DeleteSong(c *gin.Context) {
+	session := sessions.Default(c)
+
+	user, err := s.getCurrentUserFromDbBy(session)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	songTitle := strings.TrimPrefix(c.Param("song"), "/")
+
+	song, err := s.DB.GetSongByNameForUser(songTitle, user.ID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Delete song meta from database
+	err = s.DB.DeleteSongByID(user.ID, song.ID)
+	if err != nil {
+
+	}
+
+	// Delete song from bucket
+	err = s.metainfo.DeleteObject(c, user.Username, song.Filename)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	songs, err := s.GetRecentSongArray()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"recent":  songs,
+		"Success": "Successfully deleted song",
+	})
+	return
+}
+
 // DeleteUser deletes a user
 func (s *Server) DeleteUser(c *gin.Context) {
 	session := sessions.Default(c)

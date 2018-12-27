@@ -137,14 +137,28 @@ func (db *DB) GetSongByNameForUser(title string, userID int) (result Song, err e
 	return result, err
 }
 
-// DeleteSong from the database
-func (db *DB) DeleteSong(title string) error {
+// DeleteSongByID from the database
+// Also deletes associated comments
+func (db *DB) DeleteSongByID(userID int, songID int) error {
 	defer db.locked()()
-	_, err := db.DB.Exec(`DELETE FROM songs WHERE title=?`, title)
+
+	tx, err := db.DB.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	_, err = tx.Exec(`DELETE FROM songs WHERE id=? AND user_id=?`, songID, userID)
 	if err == sql.ErrNoRows {
 		err = nil
 	}
-	return err
+
+	_, err = tx.Exec(`DELETE FROM comments WHERE song_id=?`, songID)
+	if err == sql.ErrNoRows {
+		err = nil
+	}
+
+	return tx.Commit()
 }
 
 // AddComment to the database

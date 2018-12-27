@@ -88,6 +88,7 @@ func main() {
 	server.r.GET("/user/:name/*song", server.GetSong)
 	server.r.POST("/user/:name/*song", server.DownloadSong)
 	server.r.GET("/download/:name/*song", server.DownloadSong)
+	server.r.POST("/delete/*song", server.DeleteSong)
 
 	// Routes that are only accessible if not logged in
 	guest := server.r.Group("/guest")
