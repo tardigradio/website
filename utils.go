@@ -34,10 +34,10 @@ func initConfig(homeDir string) *cmd.Config {
 	rsCfg := miniogw.RSConfig{
 		MaxBufferMem:     0x400000,
 		ErasureShareSize: 1024,
-		MinThreshold:     20,
-		RepairThreshold:  30,
-		SuccessThreshold: 40,
-		MaxThreshold:     50,
+		MinThreshold:     2,
+		RepairThreshold:  3,
+		SuccessThreshold: 4,
+		MaxThreshold:     5,
 	}
 
 	eCfg := miniogw.EncryptionConfig{

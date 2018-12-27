@@ -10,35 +10,32 @@
 
   <body style="padding: 1em;">
 		<nav class="navbar navbar-expand-lg navbar-light bg-light">
-		  <a class="navbar-brand" href="#">Tardigrad.io</a>
+		  <a class="navbar-brand" href="/">Tardigrad.io</a>
 		  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
 		    <span class="navbar-toggler-icon"></span>
 		  </button>
-		  <div class="collapse navbar-collapse" id="navbarNav">
-		    <ul class="navbar-nav">
-		      <li class="nav-item active">
-		        <a class="nav-link" href="/">Home</a>
-		      </li>
-				{{if .currentUser }}
-					<li class="nav-item">
-						<a class="nav-link" href="/user/{{.currentUser}}">account</a>
-					</li>
-					<li class="nav-item">
-						<a class="nav-link" href="/active/upload">upload</a>
-					</li>
-					<li class="nav-item">
-						<a class="nav-link" href="/active/logout">logout</a>
-					</li>
-				{{else}}
-					<li class="nav-item">
-						<a class="nav-link" href="/guest/register">register</a>
-					</li>
-					<li class="nav-item">
-						<a class="nav-link" href="/guest/login">login</a>
-					</li>
-				{{end}}
-		    </ul>
-		  </div>
+			<div class="collapse navbar-collapse justify-content-end" id="navbarCollapse">
+				<ul class="navbar-nav">
+					{{if .currentUser}}
+						<li class="nav-item">
+							<a class="nav-link" href="/user/{{.currentUser}}">account</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="/active/upload">upload</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="/active/logout">logout</a>
+						</li>
+					{{else}}
+						<li class="nav-item">
+							<a class="nav-link" href="/guest/register">register</a>
+						</li>
+						<li class="nav-item">
+							<a class="nav-link" href="/guest/login">login</a>
+						</li>
+					{{end}}
+				</ul>
+			</div>
 		</nav>
     <div id="tracks">
       <span style="font-size: 1.5em;font-weight: bold;">

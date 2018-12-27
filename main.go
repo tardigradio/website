@@ -12,13 +12,18 @@ import (
 )
 
 // AuthRequired is a handler requires users to be logged in for access to specific routes
-func AuthRequired() gin.HandlerFunc {
+func AuthRequired(server *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
 		user := session.Get("user")
+
 		if user == nil {
 			// You'd normally redirect to login page
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid session token"})
+			c.HTML(http.StatusBadRequest, "login.tmpl", gin.H{
+				"Error": "Invalid session token",
+			})
+			c.Abort()
+			return
 		} else {
 			// Continue down the chain to handler etc
 			c.Next()
@@ -27,12 +32,18 @@ func AuthRequired() gin.HandlerFunc {
 }
 
 // GuestRequired is a handler requires users to be logged out for access to specific routes
-func GuestRequired() gin.HandlerFunc {
+func GuestRequired(server *Server) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session := sessions.Default(c)
-		_, err := getCurrentUserFrom(session)
+		userID, err := getCurrentUserFrom(session)
 		if err == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "You are already logged in"})
+			user, _ := server.DB.GetUserByID(userID)
+			c.HTML(http.StatusBadRequest, "index.tmpl", gin.H{
+				"Error":       "You are already logged in",
+				"currentUser": user.Username,
+			})
+			c.Abort()
+			return
 		} else {
 			// Continue down the chain to handler etc
 			c.Next()
@@ -64,7 +75,7 @@ func main() {
 
 	// Routes that require users to be logged in
 	private := server.r.Group("/active")
-	private.Use(AuthRequired())
+	private.Use(AuthRequired(server))
 	{
 		private.GET("/logout", server.GetLogout)
 		private.GET("/upload", server.GetUpload)
@@ -80,7 +91,7 @@ func main() {
 
 	// Routes that are only accessible if not logged in
 	guest := server.r.Group("/guest")
-	guest.Use(GuestRequired())
+	guest.Use(GuestRequired(server))
 	{
 		guest.GET("/register", server.GetRegister)
 		guest.POST("/register", server.PostRegister)
