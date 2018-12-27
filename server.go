@@ -272,10 +272,16 @@ func (s *Server) PostUpload(c *gin.Context) {
 		return
 	}
 
+	song, err := s.DB.GetSongByNameForUser(title, user.ID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.HTML(http.StatusOK, "song.tmpl", gin.H{
 		"currentUser": user.Username,
 		"username":    user.Username,
-		"song":        title,
+		"song":        song,
 	})
 	return
 }
