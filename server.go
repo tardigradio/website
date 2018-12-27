@@ -37,6 +37,13 @@ type Server struct {
 	es       storj.EncryptionScheme
 }
 
+// SongWithArtist contains information about a song and the artist
+type SongWithArtist struct {
+	Song    db.Song
+	Artist  string
+	Created string
+}
+
 // Initialize the Tardigradio Server
 func Initialize(ctx context.Context) *Server {
 	router := gin.Default()
@@ -94,29 +101,10 @@ func (s *Server) GetRoot(c *gin.Context) {
 	}
 
 	// Get all songs uploaded in the last 24 hours
-	recent, err := s.DB.GetRecentSongs()
+	songs, err := s.GetRecentSongArray()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
-	}
-
-	type SongWithArtist struct {
-		Song    db.Song
-		Artist  string
-		Created string
-	}
-
-	var songs []*SongWithArtist
-
-	// Create array of Recent Songs+Artist
-	for _, song := range recent {
-		user, err := s.DB.GetUserByID(song.UserID)
-		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		songs = append(songs, &SongWithArtist{Song: song, Artist: user.Username, Created: humanize.Time(time.Unix(int64(song.Created), 0))})
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
@@ -124,6 +112,28 @@ func (s *Server) GetRoot(c *gin.Context) {
 		"currentUser": username,
 	})
 	return
+}
+
+// GetRecentSongArray returns an array of most recent songs
+func (s *Server) GetRecentSongArray() ([]*SongWithArtist, error) {
+	var songs []*SongWithArtist
+
+	recent, err := s.DB.GetRecentSongs()
+	if err != nil {
+		return songs, err
+	}
+
+	// Create array of Recent Songs+Artist
+	for _, song := range recent {
+		user, err := s.DB.GetUserByID(song.UserID)
+		if err != nil {
+			return songs, err
+		}
+
+		songs = append(songs, &SongWithArtist{Song: song, Artist: user.Username, Created: humanize.Time(time.Unix(int64(song.Created), 0))})
+	}
+
+	return songs, nil
 }
 
 // GetSong will Get the "/user/:name/*song" endpoint
@@ -344,8 +354,15 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	session.Delete("user")
 	session.Save()
 
+	songs, err := s.GetRecentSongArray()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"Success": "Successfully logged out",
+		"recent":  songs,
+		"Success": "Successfully deleted account",
 	})
 	return
 }
@@ -436,9 +453,16 @@ func (s *Server) PostLogin(c *gin.Context) {
 	session.Set("user", user.ID)
 	session.Save()
 
+	songs, err := s.GetRecentSongArray()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"Success":     "Successfully logged in",
+		"recent":      songs,
 		"currentUser": username,
+		"Success":     "Successfully logged in",
 	})
 	return
 }
@@ -496,9 +520,17 @@ func (s *Server) PostRegister(c *gin.Context) {
 
 	session.Set("user", id)
 	session.Save()
+
+	songs, err := s.GetRecentSongArray()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"Success":     "Successfully registered",
+		"recent":      songs,
 		"currentUser": username,
+		"Success":     "Successfully registered",
 	})
 	return
 }
@@ -516,7 +548,14 @@ func (s *Server) GetLogout(c *gin.Context) {
 	session.Delete("user")
 	session.Save()
 
+	songs, err := s.GetRecentSongArray()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"recent":  songs,
 		"Success": "Successfully logged out",
 	})
 	return
