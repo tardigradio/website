@@ -88,6 +88,12 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 		return nil, err
 	}
 
+	// like table keeps track of likes for comments, accounts, and songs (ref_id)
+	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `likes` (`id` INTEGER PRIMARY KEY, `user_id` INTEGER, `ref_id` INTEGER);")
+	if err != nil {
+		return nil, err
+	}
+
 	_, err = tx.Exec("CREATE INDEX IF NOT EXISTS idx_songs_created ON songs (created);")
 	if err != nil {
 		return nil, err
@@ -181,6 +187,22 @@ func (db *DB) AddUser(email, username string, hash []byte) (int64, error) {
 	}
 
 	return res.LastInsertId()
+}
+
+// Add a like to the database
+func (db *DB) Like(userID, refID int) error {
+	defer db.locked()()
+
+	_, err := db.DB.Exec("INSERT INTO likes (user_id, ref_id) VALUES (?, ?)", userID, refID)
+	return err
+}
+
+// Remove a Like from the database
+func (db *DB) Dislike(userID, refID int) error {
+	defer db.locked()()
+
+	_, err := db.DB.Exec("DELETE FROM likes WHERE user_id=? AND ref_id=?", userID, refID)
+	return err
 }
 
 // DeleteUser from the database
