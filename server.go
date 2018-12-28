@@ -194,7 +194,6 @@ func (s *Server) DownloadSong(c *gin.Context) {
 
 	readOnlyStream, err := s.metainfo.GetObjectStream(c, username, song.Filename)
 	if err != nil {
-		fmt.Println("GetObjectStream", err.Error())
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -251,7 +250,6 @@ func (s *Server) PostUpload(c *gin.Context) {
 		EncryptionScheme: s.es,
 	}
 
-	fmt.Println("PATH:", fileHeader.Filename)
 	obj, err := s.metainfo.CreateObject(c, user.Username, fileHeader.Filename, &createInfo)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -360,8 +358,6 @@ func (s *Server) ToggleLike(c *gin.Context) {
 	}
 
 	isLiked := s.DB.IsLiked(user.ID, refID)
-	fmt.Println(isLiked)
-	fmt.Println(user.ID, refID)
 
 	if isLiked {
 		err = s.DB.Dislike(user.ID, refID)
