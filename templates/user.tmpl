@@ -17,13 +17,21 @@
 		<ul class="navbar-nav">
 			{{if .currentUser}}
 				<li class="nav-item">
-					<a class="nav-link" href="/user/{{.currentUser}}">account</a>
-				</li>
-				<li class="nav-item">
 					<a class="nav-link" href="/active/upload">upload</a>
 				</li>
 				<li class="nav-item">
-					<a class="nav-link" href="/active/logout">logout</a>
+				<!--	<a class="nav-link" href="/user/{{.currentUser}}">account</a> -->
+
+					<div class="dropdown">
+  					<button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    					account
+						</button>
+						<div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+							<a class="dropdown-item" href="/user/{{.currentUser}}">profile</a>
+							<a class="dropdown-item" href="#">settings</a>
+							<a class="dropdown-item" href="/active/logout">logout</a>
+						</div>
+					</div>
 				</li>
 			{{else}}
 				<li class="nav-item">
