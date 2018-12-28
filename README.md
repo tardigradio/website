@@ -12,9 +12,11 @@ Website for musicians to share what they've Created
 * Search bar for Users
 * Search bar for song title
 * Edit song
-* Edit profile
+* Profile settings (edit/delete)
 * Users page contains description and links to other social media
 * Forgot password feature
 * 2-factor authentication
 * Song Comments
 * Song Likes
+* Profile pictures (gravatar)
+* Profile Bio
