@@ -78,6 +78,7 @@ func main() {
 	private.Use(AuthRequired(server))
 	{
 		private.GET("/logout", server.GetLogout)
+		private.GET("/settings", server.GetSettings)
 		private.GET("/upload", server.GetUpload)
 		private.POST("/upload", server.PostUpload)
 		private.POST("/delete", server.DeleteUser)
