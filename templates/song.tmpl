@@ -46,9 +46,11 @@
       <form action="/user/{{ .username }}/{{ .song.Title }}" method="post">
         <button type="submit" class="btn btn-primary">Download</button>
       </form>
+			{{if eq .currentUser .username }}
 			<form action="/delete/{{ .song.Title }}" method="post">
         <button type="submit" class="btn btn-warning">Delete Song</button>
       </form>
+			{{end}}
     </div>
   </body>
 </html>
