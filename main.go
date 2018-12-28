@@ -51,6 +51,13 @@ func GuestRequired(server *Server) gin.HandlerFunc {
 	}
 }
 
+// RateLimit
+func RateLimit() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Next()
+	}
+}
+
 func main() {
 	ctx := context.Background()
 	port := "8080"
@@ -89,6 +96,15 @@ func main() {
 	server.r.POST("/user/:name/*song", server.DownloadSong)
 	server.r.GET("/download/:name/*song", server.DownloadSong)
 	server.r.POST("/delete/*song", server.DeleteSong)
+
+	// Rate limited routes
+	like := server.r.Group("/like")
+	like.Use(RateLimit())
+	{
+		like.POST("/", server.ToggleLike)
+		like.POST("/count", server.GetLikeCount)
+		like.POST("/status", server.IsLiked)
+	}
 
 	// Routes that are only accessible if not logged in
 	guest := server.r.Group("/guest")
