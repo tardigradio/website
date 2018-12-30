@@ -17,6 +17,5 @@ Website for musicians to share what they've Created
 * Forgot password feature
 * 2-factor authentication
 * Song Comments
-* Song Likes
 * Profile pictures (gravatar)
 * Profile Bio
