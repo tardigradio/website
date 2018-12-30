@@ -18,6 +18,12 @@ type DB struct {
 	mu sync.Mutex
 }
 
+const (
+	UserType = iota // UserType = 0
+	SongType        // SongType = 1
+	CommentType
+)
+
 // User struct matches row on `users` table
 type User struct {
 	ID       int
@@ -89,7 +95,7 @@ func Open(ctx context.Context, DBPath string) (*DB, error) {
 	}
 
 	// like table keeps track of likes for comments, accounts, and songs (ref_id)
-	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `likes` (`id` INTEGER PRIMARY KEY, `user_id` INTEGER, `ref_id` INTEGER);")
+	_, err = tx.Exec("CREATE TABLE IF NOT EXISTS `likes` (`id` INTEGER PRIMARY KEY, `created` INTEGER, `user_id` INTEGER, `ref_id` INTEGER, `type` INTEGER);")
 	if err != nil {
 		return nil, err
 	}
@@ -190,10 +196,11 @@ func (db *DB) AddUser(email, username string, hash []byte) (int64, error) {
 }
 
 // Add a like to the database
-func (db *DB) Like(userID, refID int) error {
+func (db *DB) Like(userID, refID, likeType int) error {
 	defer db.locked()()
 
-	_, err := db.DB.Exec("INSERT INTO likes (user_id, ref_id) VALUES (?, ?)", userID, refID)
+	created := time.Now().Unix()
+	_, err := db.DB.Exec("INSERT INTO likes (created, user_id, ref_id, type) VALUES (?, ?, ?, ?)", created, userID, refID, likeType)
 	return err
 }
 
@@ -203,6 +210,34 @@ func (db *DB) Dislike(userID, refID int) error {
 
 	_, err := db.DB.Exec("DELETE FROM likes WHERE user_id=? AND ref_id=?", userID, refID)
 	return err
+}
+
+// RefLikeCount Counts number of likes for specific id
+func (db *DB) RefLikeCount(refID int) (count int) {
+	defer db.locked()()
+
+	rows := db.DB.QueryRow("SELECT count(*) FROM likes WHERE ref_id=?", refID)
+	rows.Scan(&count)
+	return count
+}
+
+// IsLiked Counts number of items liked by user
+func (db *DB) IsLiked(userID, refID int) bool {
+	defer db.locked()()
+
+	var count int
+	rows := db.DB.QueryRow("SELECT count(*) FROM likes WHERE user_id=? AND ref_id=?", userID, refID)
+	rows.Scan(&count)
+	return (count > 0)
+}
+
+// UserLikeCount Counts number of items liked by user
+func (db *DB) UserLikeCount(userID int) (count int) {
+	defer db.locked()()
+
+	rows := db.DB.QueryRow("SELECT count(*) FROM likes WHERE user_id=?", userID)
+	rows.Scan(&count)
+	return count
 }
 
 // DeleteUser from the database

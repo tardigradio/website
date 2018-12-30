@@ -194,7 +194,6 @@ func (s *Server) DownloadSong(c *gin.Context) {
 
 	readOnlyStream, err := s.metainfo.GetObjectStream(c, username, song.Filename)
 	if err != nil {
-		fmt.Println("GetObjectStream", err.Error())
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -251,7 +250,6 @@ func (s *Server) PostUpload(c *gin.Context) {
 		EncryptionScheme: s.es,
 	}
 
-	fmt.Println("PATH:", fileHeader.Filename)
 	obj, err := s.metainfo.CreateObject(c, user.Username, fileHeader.Filename, &createInfo)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -342,6 +340,81 @@ func (s *Server) GetUser(c *gin.Context) {
 	return
 }
 
+// ToggleLike will like or Dislike a refID
+func (s *Server) ToggleLike(c *gin.Context) {
+	var err error
+	var result int
+	session := sessions.Default(c)
+
+	refID := c.GetInt(c.PostForm("refID"))
+	refType := c.GetInt(c.PostForm("refType"))
+
+	user, err := s.getCurrentUserFromDbBy(session)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	isLiked := s.DB.IsLiked(user.ID, refID)
+
+	if isLiked {
+		err = s.DB.Dislike(user.ID, refID)
+		result = 0
+	} else {
+		err = s.DB.Like(user.ID, refID, refType)
+		result = 1
+	}
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(200, gin.H{
+		"result": result,
+	})
+	return
+}
+
+// GetLikeCount will return JSON indicating the amount of likes a refID has
+func (s *Server) GetLikeCount(c *gin.Context) {
+	refID := c.GetInt(c.PostForm("refID"))
+
+	count := s.DB.RefLikeCount(refID)
+
+	c.JSON(200, gin.H{
+		"result": count,
+	})
+	return
+}
+
+// IsLiked will return JSON indicating if a refID is liked
+func (s *Server) IsLiked(c *gin.Context) {
+	session := sessions.Default(c)
+
+	refID := c.GetInt(c.PostForm("refID"))
+
+	user, err := s.getCurrentUserFromDbBy(session)
+	if err != nil {
+		c.JSON(200, gin.H{
+			"error:": err.Error(),
+			"result": false,
+		})
+		return
+	}
+
+	isLiked := s.DB.IsLiked(user.ID, refID)
+
+	c.JSON(200, gin.H{
+		"result": isLiked,
+	})
+	return
+}
+
 // GetSettings gets the account settings page
 func (s *Server) GetSettings(c *gin.Context) {
 	session := sessions.Default(c)
@@ -358,6 +431,7 @@ func (s *Server) GetSettings(c *gin.Context) {
 	})
 	return
 }
+
 // DeleteSong will delete a song by the name
 func (s *Server) DeleteSong(c *gin.Context) {
 	session := sessions.Default(c)
@@ -379,7 +453,8 @@ func (s *Server) DeleteSong(c *gin.Context) {
 	// Delete song meta from database
 	err = s.DB.DeleteSongByID(user.ID, song.ID)
 	if err != nil {
-
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
 	// Delete song from bucket
