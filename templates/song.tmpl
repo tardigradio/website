@@ -76,7 +76,7 @@
 		<button type="submit" class="btn btn-primary">Submit</button>
 	</form>
 
-	<form id="likeCount" action="/like/count" method="post" style="display: none;">
+	<form id="likeCheck" action="/like/count" method="post" style="display: none;">
 		<input type="number" name="refID" class="form-control" id="refID" value="{{ .song.ID }}">
 		<button type="submit" class="btn btn-primary">Submit</button>
 	</form>
@@ -103,9 +103,16 @@ function downloadSong() {
 }
 
 function toggleLikes() {
-	document.getElementById("toggleLikes").submit();
-
-	// If successful toggle button
+	$.post("/like", $("#toggleLikes").serialize(), function(data) {
+		liked = data.result
+		if (liked) {
+			document.getElementById("like").className = "fas fa-thumbs-up";
+			document.getElementById("likeCount").innerHTML = parseInt(document.getElementById("likeCount").innerHTML)+1;
+		} else {
+			document.getElementById("like").className = "far fa-thumbs-up";
+			document.getElementById("likeCount").innerHTML = parseInt(document.getElementById("likeCount").innerHTML)-1;
+		}
+	});
 }
 
 function setLikeBar() {
@@ -120,11 +127,11 @@ function setLikeBar() {
 	});
 
 	// Get like count
-	$.post("/like/count", $("#likeCount").serialize(), function(data) {
+	$.post("/like/count", $("#likeCheck").serialize(), function(data) {
 		document.getElementById("likeCount").innerHTML = data.result
 	});
 }
 
 document.onload = setLikeBar()
-setInterval(setLikeBar, 5000)
+setInterval(setLikeBar, 60000)
 </script>
