@@ -23,6 +23,5 @@ Website for musicians to share what they've Created
 * Profile pictures (gravatar)
 * User Likes
 * Comment Likes
-* Most liked Songs of the week on Home Page
 * Most liked Artists of the week on Home Page
 * Most discussed Songs of the week
