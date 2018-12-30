@@ -415,6 +415,23 @@ func (s *Server) IsLiked(c *gin.Context) {
 	return
 }
 
+// GetSettings gets the account settings page
+func (s *Server) GetSettings(c *gin.Context) {
+	session := sessions.Default(c)
+
+	var currentUserName string
+	currentUser, err := s.getCurrentUserFromDbBy(session)
+	if err == nil {
+		currentUserName = currentUser.Username
+	}
+
+	c.HTML(http.StatusOK, "settings.tmpl", gin.H{
+		"currentUser": currentUserName,
+		"email":       currentUser.Email,
+	})
+	return
+}
+
 // DeleteSong will delete a song by the name
 func (s *Server) DeleteSong(c *gin.Context) {
 	session := sessions.Default(c)
