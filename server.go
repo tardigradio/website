@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,11 +38,13 @@ type Server struct {
 	es       storj.EncryptionScheme
 }
 
-// SongWithArtist contains information about a song and the artist
-type SongWithArtist struct {
-	Song    db.Song
-	Artist  string
-	Created string
+// SongWithMeta contains information about a song and the artist
+type SongWithMeta struct {
+	Song     db.Song
+	Artist   string
+	Created  string
+	Likes    int
+	Comments int
 }
 
 // Initialize the Tardigradio Server
@@ -112,16 +115,25 @@ func (s *Server) GetRoot(c *gin.Context) {
 		return
 	}
 
+	recentLikedSongs, err := s.DB.GetRecentLikedSongs()
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	fmt.Println(recentLikedSongs)
+
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
 		"recent":      songs,
+		"likedSongs":  recentLikedSongs,
 		"currentUser": username,
 	})
 	return
 }
 
 // GetRecentSongArray returns an array of most recent songs
-func (s *Server) GetRecentSongArray() ([]*SongWithArtist, error) {
-	var songs []*SongWithArtist
+func (s *Server) GetRecentSongArray() ([]*SongWithMeta, error) {
+	var songs []*SongWithMeta
 
 	recent, err := s.DB.GetRecentSongs()
 	if err != nil {
@@ -135,7 +147,9 @@ func (s *Server) GetRecentSongArray() ([]*SongWithArtist, error) {
 			return songs, err
 		}
 
-		songs = append(songs, &SongWithArtist{Song: song, Artist: user.Username, Created: humanize.Time(time.Unix(int64(song.Created), 0))})
+		likes := s.DB.RefLikeCount(song.ID)
+
+		songs = append(songs, &SongWithMeta{Song: song, Artist: user.Username, Created: humanize.Time(time.Unix(int64(song.Created), 0)), Likes: likes})
 	}
 
 	return songs, nil
@@ -346,8 +360,23 @@ func (s *Server) ToggleLike(c *gin.Context) {
 	var result int
 	session := sessions.Default(c)
 
-	refID := c.GetInt(c.PostForm("refID"))
-	refType := c.GetInt(c.PostForm("refType"))
+	refID, err := strconv.Atoi(c.PostForm("refID"))
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	refType, err := strconv.Atoi(c.PostForm("refType"))
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	user, err := s.getCurrentUserFromDbBy(session)
 	if err != nil {
@@ -382,7 +411,14 @@ func (s *Server) ToggleLike(c *gin.Context) {
 
 // GetLikeCount will return JSON indicating the amount of likes a refID has
 func (s *Server) GetLikeCount(c *gin.Context) {
-	refID := c.GetInt(c.PostForm("refID"))
+	refID, err := strconv.Atoi(c.PostForm("refID"))
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	count := s.DB.RefLikeCount(refID)
 
@@ -396,7 +432,14 @@ func (s *Server) GetLikeCount(c *gin.Context) {
 func (s *Server) IsLiked(c *gin.Context) {
 	session := sessions.Default(c)
 
-	refID := c.GetInt(c.PostForm("refID"))
+	refID, err := strconv.Atoi(c.PostForm("refID"))
+
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
 
 	user, err := s.getCurrentUserFromDbBy(session)
 	if err != nil {

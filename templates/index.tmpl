@@ -58,20 +58,41 @@
 
 		<div id="recent">
       <h2>Recent Uploads</h2><br />
-			<table class="table">
+			<table class="table table-striped table-responsive-sm" style="width: 50%;">
 			  <thead>
 			    <tr>
-			      <th scope="col">Song</th>
-			      <th scope="col">Artist</th>
-						<th scope="col">Uploaded</th>
+						<th style="width: 15%" scope="col">Uploaded</th>
+			      <th style="width: 50%" scope="col">Song</th>
+			      <th style="width: 25%" scope="col">Artist</th>
+						<th style="width:  5%" scope="col">Likes</th>
+						<th style="width:  5" scope="col">Comments</th>
 			    </tr>
 			  </thead>
 			  <tbody>
 					{{range $i, $song := .recent}}
 			    <tr>
+						<td>{{$song.Created}}</td>
 			      <td><a href="/user/{{$song.Artist}}/{{$song.Song.Title}}">{{$song.Song.Title}}</a></td>
 			      <td><a href="/user/{{$song.Artist}}">{{$song.Artist}}</a></td>
-						<td>{{$song.Created}}</td>
+						<td>{{$song.Likes}}</td>
+						<td>{{$song.Comments}}</td>
+			    </tr>
+					{{end}}
+			  </tbody>
+			</table>
+    </div>
+
+	<div id="popularSongs" >
+			<table class="table table-striped table-responsive-sm" style="width: 30%;">
+			  <thead>
+			    <tr>
+						<th style="width: 100%" scope="col">Most liked this week</th>
+			    </tr>
+			  </thead>
+			  <tbody>
+					{{range $i, $likedSong := .likedSongs}}
+			    <tr>
+						<td><a href="/user/{{$likedSong.Artist}}/{{$likedSong.Title}}">{{$likedSong.Title}}</a> by <a href="/user/{{$likedSong.Artist}}">{{$likedSong.Artist}}</a> <br />{{$likedSong.Likes}} likes</td>
 			    </tr>
 					{{end}}
 			  </tbody>

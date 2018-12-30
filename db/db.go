@@ -53,6 +53,14 @@ type Comment struct {
 	SongID    int
 }
 
+// RecentlyLikedSong Custom struct containing meta about recently popular songs
+type RecentlyLikedSong struct {
+	SongID int
+	Title  string
+	Artist string
+	Likes  int
+}
+
 // Open the database by path and setup tables
 func Open(ctx context.Context, DBPath string) (*DB, error) {
 	if err := os.MkdirAll(filepath.Dir(DBPath), 0700); err != nil {
@@ -291,11 +299,11 @@ func (db *DB) GetSongsForUser(userID int) (songs []Song, err error) {
 	return songs, err
 }
 
-// GetRecentSongs returns last 100 songs created
+// GetRecentSongs returns last 35 songs created
 func (db *DB) GetRecentSongs() (songs []Song, err error) {
 	defer db.locked()()
 
-	rows, err := db.DB.Query("SELECT * FROM songs ORDER BY created DESC LIMIT 100")
+	rows, err := db.DB.Query("SELECT * FROM songs ORDER BY created DESC LIMIT 35")
 	if err != nil {
 		return nil, err
 	}
@@ -307,6 +315,31 @@ func (db *DB) GetRecentSongs() (songs []Song, err error) {
 		if err := rows.Scan(&song.ID, &song.Title, &song.Description, &song.Created, &song.UserID, &song.Filename); err != nil {
 			return nil, err
 		}
+
+		songs = append(songs, song)
+	}
+
+	return songs, err
+}
+
+func (db *DB) GetRecentLikedSongs() (songs []RecentlyLikedSong, err error) {
+	defer db.locked()()
+
+	oneWeekAgo := time.Now().AddDate(0, 0, -7).Unix()
+	rows, err := db.DB.Query("SELECT likes.ref_id AS id, songs.title AS title, users.username AS username, COUNT(*) AS likes FROM likes INNER JOIN songs ON songs.id = likes.ref_id INNER JOIN users ON songs.user_id = users.id WHERE likes.created>? AND likes.type=1 GROUP BY likes.ref_id ORDER BY COUNT(*) DESC LIMIT 10", oneWeekAgo)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var song RecentlyLikedSong
+
+		if err := rows.Scan(&song.SongID, &song.Title, &song.Artist, &song.Likes); err != nil {
+			return nil, err
+		}
+
+		fmt.Println(song)
 
 		songs = append(songs, song)
 	}
