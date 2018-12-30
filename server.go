@@ -47,6 +47,11 @@ type SongWithMeta struct {
 	Comments int
 }
 
+type HomeVars struct {
+	RecentUploadedSongs []*SongWithMeta
+	RecentLikedSongs    []db.RecentlyLikedSong
+}
+
 // Initialize the Tardigradio Server
 func Initialize(ctx context.Context) *Server {
 	router := gin.Default()
@@ -109,26 +114,32 @@ func (s *Server) GetRoot(c *gin.Context) {
 	}
 
 	// Get all songs uploaded in the last 24 hours
-	songs, err := s.GetRecentSongArray()
+	homevars, err := s.homeVariables()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
+	}
+
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"recent":      homevars.RecentUploadedSongs,
+		"likedSongs":  homevars.RecentLikedSongs,
+		"currentUser": username,
+	})
+	return
+}
+
+func (s *Server) homeVariables() (HomeVars, error) {
+	songs, err := s.GetRecentSongArray()
+	if err != nil {
+		return HomeVars{}, err
 	}
 
 	recentLikedSongs, err := s.DB.GetRecentLikedSongs()
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+		return HomeVars{}, err
 	}
 
-	fmt.Println(recentLikedSongs)
-
-	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"recent":      songs,
-		"likedSongs":  recentLikedSongs,
-		"currentUser": username,
-	})
-	return
+	return HomeVars{RecentLikedSongs: recentLikedSongs, RecentUploadedSongs: songs}, nil
 }
 
 // GetRecentSongArray returns an array of most recent songs
@@ -507,17 +518,19 @@ func (s *Server) DeleteSong(c *gin.Context) {
 		return
 	}
 
-	songs, err := s.GetRecentSongArray()
+	homevars, err := s.homeVariables()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"recent":      songs,
+		"recent":      homevars.RecentUploadedSongs,
+		"likedSongs":  homevars.RecentLikedSongs,
 		"currentUser": user.Username,
 		"Success":     "Successfully deleted song",
 	})
+
 	return
 }
 
@@ -551,15 +564,16 @@ func (s *Server) DeleteUser(c *gin.Context) {
 	session.Delete("user")
 	session.Save()
 
-	songs, err := s.GetRecentSongArray()
+	homevars, err := s.homeVariables()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"recent":  songs,
-		"Success": "Successfully deleted account",
+		"recent":     homevars.RecentUploadedSongs,
+		"likedSongs": homevars.RecentLikedSongs,
+		"Success":    "Successfully deleted account",
 	})
 	return
 }
@@ -650,14 +664,15 @@ func (s *Server) PostLogin(c *gin.Context) {
 	session.Set("user", user.ID)
 	session.Save()
 
-	songs, err := s.GetRecentSongArray()
+	homevars, err := s.homeVariables()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"recent":      songs,
+		"recent":      homevars.RecentUploadedSongs,
+		"likedSongs":  homevars.RecentLikedSongs,
 		"currentUser": username,
 		"Success":     "Successfully logged in",
 	})
@@ -718,14 +733,15 @@ func (s *Server) PostRegister(c *gin.Context) {
 	session.Set("user", id)
 	session.Save()
 
-	songs, err := s.GetRecentSongArray()
+	homevars, err := s.homeVariables()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"recent":      songs,
+		"recent":      homevars.RecentUploadedSongs,
+		"likedSongs":  homevars.RecentLikedSongs,
 		"currentUser": username,
 		"Success":     "Successfully registered",
 	})
@@ -745,15 +761,16 @@ func (s *Server) GetLogout(c *gin.Context) {
 	session.Delete("user")
 	session.Save()
 
-	songs, err := s.GetRecentSongArray()
+	homevars, err := s.homeVariables()
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	c.HTML(http.StatusOK, "index.tmpl", gin.H{
-		"recent":  songs,
-		"Success": "Successfully logged out",
+		"recent":     homevars.RecentUploadedSongs,
+		"likedSongs": homevars.RecentLikedSongs,
+		"Success":    "Successfully logged out",
 	})
 	return
 }
