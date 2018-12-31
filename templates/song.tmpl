@@ -45,7 +45,7 @@
 			</div>
 		</nav>
 
-    <div id="tracks">
+    <div id="song" style="display:inline-block; float:left;">
       <span style="font-size: 1.5em;font-weight: bold;">
 				{{ .song.Title }}</span>
 				{{if eq .currentUser .username }}
@@ -66,6 +66,24 @@
 			<br />
 			<small>This song is licensed under the <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA license</a></small>
     </div>
+
+	<div id="comments" style="display:inline-block;; float:right;">
+		<table class="table table-responsive-sm">
+			<thead>
+				<tr>
+					<th style="width: 15%" scope="col">Comments (0)</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>No Comments</td>
+				</tr>
+			</tbody>
+		</table>
+    </div>
+
+	<br />
+
 
 	</body>
 	

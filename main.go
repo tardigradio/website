@@ -108,7 +108,7 @@ func main() {
 
 	// Load Assets
 	server.r.LoadHTMLGlob("templates/*")
-	server.r.Static("/css", "assets/css")
+	// server.r.Static("/css", "assets/css")
 
 	// Routes that require users to be logged in
 	private := server.r.Group("/active")
