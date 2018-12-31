@@ -6,9 +6,13 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 
+	iplimiter "github.com/Salvatore-Giordano/gin-redis-ip-limiter"
+	"github.com/alicebob/miniredis"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/go-redis/redis"
 )
 
 // AuthRequired is a handler requires users to be logged in for access to specific routes
@@ -69,9 +73,35 @@ func main() {
 		}
 	}
 
+	// Detect if redis variables exist
+	var redisAddr string
+	var redisPass string
+
+	redisAddr = os.Getenv("REDISADDR")
+	redisPass = os.Getenv("REDISPASS")
+
+	// If no redis URL set
+	if redisAddr == "" {
+		s, err := miniredis.Run()
+		if err != nil {
+			panic(err)
+		}
+		defer s.Close()
+		redisAddr = s.Addr()
+		redisPass = ""
+	}
+
+	rc := redis.NewClient(&redis.Options{
+		Addr:     redisAddr,
+		Password: redisPass,
+		DB:       0,
+	})
+
 	// Initialize the Server Struct
 	server := Initialize(ctx)
 	defer server.Close() // Cleanly shutdown server
+
+	server.r.Use(iplimiter.NewRateLimiterMiddleware(rc, "general", 200, 60*time.Second))
 
 	// Homepage
 	server.r.GET("/", server.GetRoot)
@@ -100,6 +130,7 @@ func main() {
 
 	// Rate limited routes
 	like := server.r.Group("/like")
+	like.Use(iplimiter.NewRateLimiterMiddleware(rc, "likes", 30, 60*time.Second))
 	like.Use(RateLimit())
 	{
 		like.POST("/", server.ToggleLike)
