@@ -46,15 +46,19 @@
     <form  action="/active/upload" method="post" enctype="multipart/form-data" onsubmit="return Validate(this);">
       <div class="form-group col-lg-3">
         <label for="songTitle">Title</label>
-        <input type="text" name="songTitle" class="form-control" id="songTitle">
+        <input type="text" name="songTitle" class="form-control" id="songTitle" required>
       </div>
       <div class="form-group col-lg-3">
         <label for="file">Song</label>
-        <input type="file" name="file" class="form-control-file" id="file">
+        <input type="file" name="file" class="form-control-file" id="file" required>
       </div>
       <div class="form-group col-lg-5">
         <label for="songDesc">Description</label>
         <textarea name="songDesc" class="form-control" id="songDesc" rows="3"></textarea>
+      </div>
+      <div class="form-group col-lg-3">
+        <input type="checkbox" class="form-check-input" id="licenseAgreement" required>
+        <label class="form-check-label" for="exampleCheck1"><small>Check here to agree to license the song under the <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons BY-NC-SA license</a></small></label>
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
@@ -68,6 +72,8 @@ function Validate(oForm) {
     var arrInputs = oForm.getElementsByTagName("input");
     for (var i = 0; i < arrInputs.length; i++) {
         var oInput = arrInputs[i];
+
+        // Validate file extension
         if (oInput.type == "file") {
             var sFileName = oInput.value;
             if (sFileName.length > 0) {

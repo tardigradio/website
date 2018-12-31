@@ -10,7 +10,6 @@ Website for musicians to share what they've Created
 
 ## TODO
 * Fix assets
-* Users sign CC license when uploading
 * Email users for confirmation when signing up
 * Rate limiting https://github.com/Salvatore-Giordano/gin-redis-ip-limiter ???
 * Users who upload songs only have 1 display on the home page once per a day
