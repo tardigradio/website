@@ -35,30 +35,21 @@
 </nav>
 
 <h1>Account Settings</h1>
-<div id="username">
-    <h2>Username</h2>
-    <form action="#">
-        <input type="text" name="username" value="{{.currentUser}}">
-        <input type="submit" value="change">
-    </form>
-</div>
-
-<div id="email">
-    <h2>Email</h2>
-    <form action="#">
-        <input type="text" name="email" value="{{.email}}">
-        <input type="submit" value="change">
-    </form>
-</div>
-
-<div id="Bio">
-    <h2>Bio</h2>
-    <form action="#">
-        <input type="text" name="bio" value="your bio will go here">
-        <input type="submit" value="change">
-    </form>
-</div>
-
-<div id="Delete">
-    <h2>Delete Account</h2>
-</div>
+<form action="/active/settings" method="post">
+    <div class="form-group col-lg-3">
+      <label for="email">Email</label>
+      <input type="email" name="email" class="form-control" id="email" value="{{.email}}">
+    </div>
+    <button type="submit" class="btn btn-primary">Change</button>
+</form>
+</form action="/active/settings" method="post">
+    <div class="form-group col-lg-3">
+        <label for="bio">Bio</label>
+        <input type="bio" name="bio" class="form-control" id="bio" value="import user bio from DB">
+    </div>
+    <button type="submit" class="btn btn-primary">Change</button>
+</form>
+<br> <br> <br>
+<form action="/active/delete" method="get">
+    <button type="submit" class="btn btn-primary">Delete Account</button>
+</form>
