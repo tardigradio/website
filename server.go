@@ -58,7 +58,7 @@ func Initialize(ctx context.Context) *Server {
 	router := gin.Default()
 
 	// Initialize the cookie store
-	store := cookie.NewStore([]byte(os.Getenv("SESSIONSECRET"))
+	store := cookie.NewStore([]byte(os.Getenv("SESSIONSECRET")))
 	router.Use(sessions.Sessions("mysession", store))
 
 	// Get current user account for determining Server Home Directory
