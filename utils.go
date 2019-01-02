@@ -43,8 +43,8 @@ func initConfig(homeDir string) cmd.Config {
 	}
 
 	clientCfg := miniogw.ClientConfig{
-		OverlayAddr:   "127.0.0.1:7778",
-		PointerDBAddr: "127.0.0.1:7778",
+		OverlayAddr:   os.Getenv("STORJOVERLAYADDR"),
+		PointerDBAddr: os.Getenv("STORJPOINTERDBADDR"),
 		APIKey:        os.Getenv("STORJAPIKEY"),
 		MaxInlineSize: 4096,
 		SegmentSize:   64000000,
