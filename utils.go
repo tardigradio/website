@@ -11,6 +11,14 @@ import (
 )
 
 func writeCert(ctx context.Context, homeDir string) error {
+	if _, err := os.Stat(filepath.Join(homeDir, ".tardigradio/identity.cert")); !os.IsNotExist(err) {
+		return nil
+	}
+
+	if _, err := os.Stat(filepath.Join(homeDir, ".tardigradio/identity.key")); !os.IsNotExist(err) {
+		return nil
+	}
+
 	ca := provider.CASetupConfig{
 		CertPath:    filepath.Join(homeDir, ".tardigradio/identity.cert"),
 		KeyPath:     filepath.Join(homeDir, ".tardigradio/identity.key"),
@@ -20,12 +28,12 @@ func writeCert(ctx context.Context, homeDir string) error {
 		Concurrency: 4,
 	}
 	i := provider.IdentitySetupConfig{
-		CertPath:    filepath.Join(homeDir, ".tardigradio/identity.cert"),
-		KeyPath:     filepath.Join(homeDir, ".tardigradio/identity.key"),
-		Overwrite:   false,
-		Version:     "0",
+		CertPath:  filepath.Join(homeDir, ".tardigradio/identity.cert"),
+		KeyPath:   filepath.Join(homeDir, ".tardigradio/identity.key"),
+		Overwrite: false,
+		Version:   "0",
 	}
-	
+
 	return provider.SetupIdentity(ctx, ca, i)
 }
 

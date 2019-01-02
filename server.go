@@ -80,8 +80,7 @@ func Initialize(ctx context.Context) *Server {
 		panic(err)
 	}
 
-	// TODO: Derive ID from bs config
-	satelliteid := "satelliteid"
+	satelliteid := cfg.Config.Client.OverlayAddr
 
 	// Open Database for storing tardigradio user data and upload meta
 	dbpath := filepath.Join(usr.HomeDir, fmt.Sprintf("/.tardigradio/%s/db.sqlite", satelliteid))
